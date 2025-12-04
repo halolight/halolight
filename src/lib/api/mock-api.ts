@@ -245,7 +245,7 @@ export const documentApi = {
     if (params?.search) {
       const search = params.search.toLowerCase()
       documents = documents.filter((d) =>
-        d.title.toLowerCase().includes(search)
+        (d.title ?? d.name ?? "").toLowerCase().includes(search)
       )
     }
 

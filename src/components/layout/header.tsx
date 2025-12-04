@@ -9,7 +9,6 @@ import * as React from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Switch } from "@/components/ui/switch"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,45 +18,74 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { cn } from "@/lib/utils"
 import { useAuthStore } from "@/stores/auth-store"
 import { useErrorStore } from "@/stores/error-store"
 import { useNavigationStore } from "@/stores/navigation-store"
+import { useUiSettingsStore } from "@/stores/ui-settings-store"
 
-import { ThemeToggle } from "./theme-toggle"
+import { QuickSettings } from "./quick-settings"
 
 interface HeaderProps {
   onMenuClick: () => void
   onSearchClick: () => void
-  footerVisible: boolean
-  onFooterToggle: (visible: boolean) => void
 }
 
-export function Header({ onMenuClick, onSearchClick, footerVisible, onFooterToggle }: HeaderProps) {
+export function Header({ onMenuClick, onSearchClick }: HeaderProps) {
   const router = useRouter()
-  const { user, logout } = useAuthStore()
+  const { user, accounts, activeAccountId, switchAccount, logout } = useAuthStore()
   const startNavigation = useNavigationStore((state) => state.startNavigation)
   const errors = useErrorStore((state) => state.errors)
   const unreadErrors = useErrorStore((state) => state.unreadCount())
   const markErrorsRead = useErrorStore((state) => state.markAllRead)
   const clearErrors = useErrorStore((state) => state.clear)
 
-  const handleLogout = async () => {
+  // 优化：使用 useCallback 缓存回调函数
+  const handleLogout = React.useCallback(async () => {
     await logout()
     router.push("/login")
-  }
+  }, [logout, router])
 
-  const handleNavigate = (href: string, label: string) => {
+  const handleNavigate = React.useCallback((href: string, label: string) => {
     startNavigation({ path: href, label, source: "header" })
     router.push(href)
-  }
+  }, [startNavigation, router])
+
+  const handleSwitchAccount = React.useCallback(async (accountId: string) => {
+    if (accountId === activeAccountId) return
+    try {
+      await switchAccount(accountId)
+    } catch {
+      // 错误已在 store 中处理
+    }
+  }, [activeAccountId, switchAccount])
+
+  const handleClearErrors = React.useCallback(() => {
+    markErrorsRead()
+    clearErrors()
+  }, [markErrorsRead, clearErrors])
+
+  // 优化：使用 useMemo 缓存账号列表
+  const accountList = React.useMemo(
+    () => (accounts.length > 0 ? accounts : user ? [user] : []),
+    [accounts, user]
+  )
+  const mobileHeaderFixed = useUiSettingsStore(
+    (state) => state.mobileHeaderFixed
+  )
+
+  const headerPositionClasses = mobileHeaderFixed ? "fixed inset-x-0 top-0" : "relative"
 
   return (
     <motion.header
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.3 }}
-      className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      className={cn(
+        "z-50 flex h-16 items-center justify-between border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60",
+        "lg:sticky lg:top-0",
+        headerPositionClasses
+      )}
     >
       <div className="flex items-center gap-4">
         <Button
@@ -198,10 +226,7 @@ export function Header({ onMenuClick, onSearchClick, footerVisible, onFooterTogg
                 variant="ghost"
                 size="sm"
                 className="h-7 px-2 text-xs"
-                onClick={() => {
-                  markErrorsRead()
-                  clearErrors()
-                }}
+                onClick={handleClearErrors}
               >
                 清空
               </Button>
@@ -246,24 +271,8 @@ export function Header({ onMenuClick, onSearchClick, footerVisible, onFooterTogg
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center gap-2 rounded-lg border border-transparent px-2 py-1 transition hover:border-border/70">
-              <span className="hidden text-xs text-muted-foreground xl:inline">显示页脚</span>
-              <Switch
-                checked={footerVisible}
-                onCheckedChange={onFooterToggle}
-                aria-label="切换页脚显示"
-              />
-            </div>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" align="end" className="bg-background text-foreground shadow-lg">
-            {footerVisible ? "隐藏页脚" : "显示页脚"}
-          </TooltipContent>
-        </Tooltip>
-
-        {/* 主题切换 */}
-        <ThemeToggle />
+        {/* 界面设置 */}
+        <QuickSettings />
 
         {/* 用户菜单 */}
         <DropdownMenu>
@@ -282,10 +291,47 @@ export function Header({ onMenuClick, onSearchClick, footerVisible, onFooterTogg
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium">{user?.name || "管理员"}</p>
                 <p className="text-xs text-muted-foreground">
-                  {user?.email || "admin@example.com"}
+                  {user?.email || "admin@halolight.h7ml.cn"}
                 </p>
               </div>
             </DropdownMenuLabel>
+            {accountList.length > 0 && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                  快速切换账号
+                </DropdownMenuLabel>
+                <DropdownMenuGroup>
+                  {accountList.map((account) => (
+                    <DropdownMenuItem
+                      key={account.id}
+                      className="cursor-pointer gap-2"
+                      onClick={() => handleSwitchAccount(account.id)}
+                    >
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={account.avatar} alt={account.name} />
+                        <AvatarFallback>
+                          {account.name?.charAt(0) || "A"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium leading-tight">
+                          {account.name}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground leading-tight">
+                          {account.role?.label || account.role?.name} · {account.email}
+                        </span>
+                      </div>
+                      {activeAccountId === account.id && (
+                        <Badge variant="secondary" className="ml-auto">
+                          当前
+                        </Badge>
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuGroup>
+              </>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               asChild
@@ -315,10 +361,10 @@ export function Header({ onMenuClick, onSearchClick, footerVisible, onFooterTogg
               asChild
               onClick={(e) => {
                 e.preventDefault()
-                handleNavigate("/docs", "帮助文档")
+                handleNavigate("https://halolight.docs.h7ml.cn/", "帮助文档")
               }}
             >
-              <Link href="/docs" className="cursor-pointer">
+              <Link href="https://halolight.docs.h7ml.cn/" className="cursor-pointer">
                 <HelpCircle className="mr-2 h-4 w-4" />
                 帮助文档
               </Link>

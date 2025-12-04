@@ -1,6 +1,13 @@
 import { create } from "zustand"
 
-export type NavigationSource = "command" | "sidebar" | "tabbar" | "header" | "footer" | "other"
+export type NavigationSource =
+  | "command"
+  | "sidebar"
+  | "tabbar"
+  | "tabbar-refresh"
+  | "header"
+  | "footer"
+  | "other"
 
 interface NavigationState {
   pendingPath: string | null

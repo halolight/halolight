@@ -139,4 +139,38 @@ Mock.mock("/api/dashboard/overview", "get", () => {
   }
 })
 
-export default {}
+// 流量来源占比
+Mock.mock("/api/dashboard/pie", "get", () => {
+  return {
+    code: 200,
+    message: "success",
+    data: Mock.mock({
+      sources: [
+        { name: "直接访问", value: "@integer(200, 800)" },
+        { name: "搜索引擎", value: "@integer(150, 700)" },
+        { name: "社交媒体", value: "@integer(80, 400)" },
+        { name: "邮件营销", value: "@integer(50, 200)" },
+      ],
+    }).sources,
+  }
+})
+
+// 待办任务
+Mock.mock("/api/dashboard/tasks", "get", () => {
+  return {
+    code: 200,
+    message: "success",
+    data: Mock.mock({
+      "list|5-8": [
+        {
+          id: "@guid",
+          title: "@ctitle(4, 10)",
+          "status|1": ["pending", "in_progress", "done"],
+        },
+      ],
+    }).list,
+  }
+})
+
+const dashboardMock = {}
+export default dashboardMock

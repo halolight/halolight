@@ -99,4 +99,5 @@ Mock.mock(/\/api\/messages\/[a-zA-Z0-9-]+$/, "delete", () => {
   }
 })
 
-export default {}
+const messageMock = {}
+export default messageMock

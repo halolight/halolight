@@ -1,0 +1,97 @@
+# Cloudflare Pages 配置
+# 文档: https://developers.cloudflare.com/pages/functions/wrangler-configuration/
+
+name = "halolight"
+compatibility_date = "2024-09-02"
+pages_build_output_dir = ".vercel/output/static"
+
+# 启用 Node.js 兼容性，支持 Server Actions 和部分 Node.js API
+compatibility_flags = ["nodejs_compat"]
+
+# ============================================================================
+# 环境变量配置
+# 注意：敏感信息请在 Cloudflare Dashboard > Pages > Settings > Environment variables 中配置
+# ============================================================================
+
+[vars]
+# 基础配置
+NEXT_PUBLIC_API_URL = "/api"
+NEXT_PUBLIC_MOCK = "true"
+
+# 演示账号配置
+NEXT_PUBLIC_DEMO_EMAIL = "admin@halolight.h7ml.cn"
+NEXT_PUBLIC_DEMO_PASSWORD = "123456"
+NEXT_PUBLIC_SHOW_DEMO_HINT = "true"
+
+# WebSocket 配置
+NEXT_PUBLIC_WS_URL = "wss://ws.halolight.h7ml.cn"
+
+# 应用配置
+NEXT_PUBLIC_APP_TITLE = "Admin Pro"
+NEXT_PUBLIC_BRAND_NAME = "Halolight"
+
+# 如需使用 Cloudflare Images，配置 account hash
+# NEXT_PUBLIC_CF_IMAGES_ACCOUNT_HASH = "your-account-hash"
+
+# ============================================================================
+# 生产环境特定配置
+# ============================================================================
+[env.production]
+# 生产环境变量在此定义或在 Dashboard 中配置
+
+[env.production.vars]
+NEXT_PUBLIC_API_URL = "/api"
+NEXT_PUBLIC_MOCK = "true"
+NEXT_PUBLIC_DEMO_EMAIL = "admin@halolight.h7ml.cn"
+NEXT_PUBLIC_DEMO_PASSWORD = "123456"
+NEXT_PUBLIC_SHOW_DEMO_HINT = "true"
+NEXT_PUBLIC_WS_URL = "wss://ws.halolight.h7ml.cn"
+NEXT_PUBLIC_APP_TITLE = "Admin Pro"
+NEXT_PUBLIC_BRAND_NAME = "Halolight"
+
+# ============================================================================
+# 预览环境特定配置（PR 预览、分支部署）
+# ============================================================================
+[env.preview]
+
+[env.preview.vars]
+NEXT_PUBLIC_MOCK = "true"
+# NEXT_PUBLIC_API_URL = "https://staging-api.your-domain.com"
+
+# ============================================================================
+# Cloudflare 服务绑定（按需启用）
+# ============================================================================
+
+# KV 存储（用于缓存、会话等）
+# [[kv_namespaces]]
+# binding = "KV"
+# id = "your-kv-namespace-id"
+
+# D1 数据库（SQLite 边缘数据库）
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "halolight-db"
+# database_id = "your-database-id"
+
+# R2 存储（对象存储，用于文件上传）
+# [[r2_buckets]]
+# binding = "R2"
+# bucket_name = "halolight-files"
+
+# Durable Objects（有状态服务）
+# [[durable_objects.bindings]]
+# name = "COUNTER"
+# class_name = "Counter"
+
+# Analytics Engine（分析数据）
+# [[analytics_engine_datasets]]
+# binding = "ANALYTICS"
+
+# ============================================================================
+# 路由规则（可选）
+# ============================================================================
+
+# 排除特定路径不经过 Worker 处理
+# [[routes]]
+# pattern = "/api/health"
+# custom_domain = false

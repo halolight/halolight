@@ -2,6 +2,7 @@
 
 import * as React from "react"
 
+import type { AccountWithToken } from "@/lib/api/client"
 import { mockRoles } from "@/lib/api/mock-data"
 import type { Permission, Role } from "@/lib/api/types"
 import { useAuthStore } from "@/stores/auth-store"
@@ -10,6 +11,7 @@ import { useAuthStore } from "@/stores/auth-store"
 interface PermissionContextType {
   permissions: Permission[]
   role: Role | null
+  activeAccount: AccountWithToken | null
   hasPermission: (permission: Permission) => boolean
   hasAnyPermission: (permissions: Permission[]) => boolean
   hasAllPermissions: (permissions: Permission[]) => boolean
@@ -18,33 +20,55 @@ interface PermissionContextType {
 const PermissionContext = React.createContext<PermissionContextType | null>(null)
 
 export function PermissionProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuthStore()
+  const { user, accounts, activeAccountId } = useAuthStore()
 
-  // 获取用户角色，默认为 admin（开发阶段）
-  const role = React.useMemo(() => {
-    if (user?.role) {
-      return typeof user.role === "string"
-        ? mockRoles.find((r) => r.id === user.role) || mockRoles[0]
-        : user.role
+  const activeAccount = React.useMemo<AccountWithToken | null>(() => {
+    if (activeAccountId) {
+      return (
+        accounts.find((account) => account.id === activeAccountId) ?? user ?? null
+      )
     }
-    return mockRoles[0] // 默认 admin
-  }, [user])
+    return user ?? accounts[0] ?? null
+  }, [accounts, activeAccountId, user])
 
-  const permissions = role?.permissions || []
+  const role = React.useMemo(() => {
+    const currentRole = activeAccount?.role
+    if (!currentRole) return null
+
+    return typeof currentRole === "string"
+      ? mockRoles.find((r) => r.id === currentRole) || null
+      : currentRole
+  }, [activeAccount])
+
+  const permissionSet = React.useMemo(
+    () => new Set<string>(role?.permissions ?? []),
+    [role]
+  )
+
+  const permissions = React.useMemo(
+    () => (role?.permissions ?? []) as Permission[],
+    [role]
+  )
 
   const hasPermission = React.useCallback(
-    (permission: Permission) => permissions.includes(permission),
-    [permissions]
+    (permission: Permission) => {
+      if (permissionSet.has("*")) return true
+      if (permissionSet.has(permission)) return true
+
+      const [resource] = permission.split(":")
+      return permissionSet.has(`${resource}:*`)
+    },
+    [permissionSet]
   )
 
   const hasAnyPermission = React.useCallback(
-    (perms: Permission[]) => perms.some((p) => permissions.includes(p)),
-    [permissions]
+    (perms: Permission[]) => perms.some((p) => hasPermission(p)),
+    [hasPermission]
   )
 
   const hasAllPermissions = React.useCallback(
-    (perms: Permission[]) => perms.every((p) => permissions.includes(p)),
-    [permissions]
+    (perms: Permission[]) => perms.every((p) => hasPermission(p)),
+    [hasPermission]
   )
 
   return (
@@ -52,6 +76,7 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
       value={{
         permissions,
         role,
+        activeAccount,
         hasPermission,
         hasAnyPermission,
         hasAllPermissions,

@@ -104,7 +104,7 @@ export const mockUsers: User[] = [
   {
     id: "1",
     name: "张三",
-    email: "zhangsan@example.com",
+    email: "zhangsan@halolight.h7ml.cn",
     phone: "138-0000-0001",
     avatar: "/avatars/1.png",
     role: mockRoles[0],
@@ -115,7 +115,7 @@ export const mockUsers: User[] = [
   {
     id: "2",
     name: "李四",
-    email: "lisi@example.com",
+    email: "lisi@halolight.h7ml.cn",
     phone: "138-0000-0002",
     role: mockRoles[1],
     status: "active",
@@ -125,7 +125,7 @@ export const mockUsers: User[] = [
   {
     id: "3",
     name: "王五",
-    email: "wangwu@example.com",
+    email: "wangwu@halolight.h7ml.cn",
     phone: "138-0000-0003",
     role: mockRoles[2],
     status: "active",
@@ -135,7 +135,7 @@ export const mockUsers: User[] = [
   {
     id: "4",
     name: "赵六",
-    email: "zhaoliu@example.com",
+    email: "zhaoliu@halolight.h7ml.cn",
     phone: "138-0000-0004",
     role: mockRoles[3],
     status: "inactive",
@@ -144,7 +144,7 @@ export const mockUsers: User[] = [
   {
     id: "5",
     name: "陈七",
-    email: "chenqi@example.com",
+    email: "chenqi@halolight.h7ml.cn",
     phone: "138-0000-0005",
     role: mockRoles[2],
     status: "suspended",

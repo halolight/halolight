@@ -1,6 +1,9 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios"
 import Cookies from "js-cookie"
 
+import { mockRoles } from "./mock-data"
+import type { Role } from "./types"
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api"
 
 export const apiClient = axios.create({
@@ -48,14 +51,20 @@ export interface ApiResponse<T = unknown> {
   data: T
 }
 
-// 用户相关类型
+// 用户相关类型（带权限的账号信息）
 export interface User {
   id: string
   email: string
   name: string
   avatar?: string
-  role: string
+  role: Role
+  status?: "active" | "inactive" | "suspended"
   createdAt: string
+  lastLoginAt?: string
+}
+
+export interface AccountWithToken extends User {
+  token: string
 }
 
 export interface LoginRequest {
@@ -72,63 +81,122 @@ export interface RegisterRequest {
 }
 
 export interface LoginResponse {
-  user: User
+  user: AccountWithToken
   token: string
   expiresIn: number
+  accounts: AccountWithToken[]
 }
+
+export interface CurrentUserResponse {
+  user: AccountWithToken
+  accounts: AccountWithToken[]
+}
+
+// 内置多账号示例（模拟多租户/多角色）
+const mockAccounts: AccountWithToken[] = [
+  {
+    id: "acc-admin",
+    email: "admin@halolight.h7ml.cn",
+    name: "主账号（管理员）",
+    avatar: "/avatars/1.png",
+    role: mockRoles[0],
+    status: "active",
+    createdAt: new Date().toISOString(),
+    lastLoginAt: new Date().toISOString(),
+    token: "mock_token_acc-admin",
+  },
+  {
+    id: "acc-ops",
+    email: "ops@halolight.h7ml.cn",
+    name: "日常运营账号",
+    avatar: "/avatars/2.png",
+    role: mockRoles[1],
+    status: "active",
+    createdAt: new Date().toISOString(),
+    lastLoginAt: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
+    token: "mock_token_acc-ops",
+  },
+  {
+    id: "acc-editor",
+    email: "editor@halolight.h7ml.cn",
+    name: "内容编辑账号",
+    avatar: "/avatars/3.png",
+    role: mockRoles[2],
+    status: "active",
+    createdAt: new Date().toISOString(),
+    lastLoginAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+    token: "mock_token_acc-editor",
+  },
+]
+
+const buildToken = (accountId: string) => `mock_token_${accountId}`
+
+const findAccountByEmail = (email: string) =>
+  mockAccounts.find((account) => account.email === email)
+
+const findAccountByToken = (token: string) =>
+  mockAccounts.find((account) => account.token === token)
 
 // 模拟 API 调用（实际项目中替换为真实 API）
 export const authApi = {
   login: async (data: LoginRequest): Promise<LoginResponse> => {
-    // 模拟 API 延迟
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    await new Promise((resolve) => setTimeout(resolve, 500))
 
-    // 模拟登录验证
-    if (data.email === "admin@example.com" && data.password === "123456") {
-      return {
-        user: {
-          id: "1",
-          email: data.email,
-          name: "管理员",
-          avatar: "",
-          role: "admin",
-          createdAt: new Date().toISOString(),
-        },
-        token: "mock_jwt_token_" + Date.now(),
-        expiresIn: 86400,
-      }
+    const account = findAccountByEmail(data.email)
+    if (!account || data.password !== "123456") {
+      throw new Error("邮箱或密码错误")
     }
-    throw new Error("邮箱或密码错误")
+
+    const token = buildToken(account.id)
+    const hydratedAccount: AccountWithToken = { ...account, token }
+
+    return {
+      user: hydratedAccount,
+      token,
+      expiresIn: 86400,
+      accounts: mockAccounts.map((item) =>
+        item.id === account.id ? hydratedAccount : item
+      ),
+    }
   },
 
   register: async (data: RegisterRequest): Promise<LoginResponse> => {
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    await new Promise((resolve) => setTimeout(resolve, 500))
 
     if (data.password !== data.confirmPassword) {
       throw new Error("两次密码输入不一致")
     }
 
+    const accountId = `acc-${Date.now()}`
+    const newAccount: AccountWithToken = {
+      id: accountId,
+      email: data.email,
+      name: data.name,
+      avatar: "/avatars/4.png",
+      role: mockRoles[3],
+      status: "active",
+      createdAt: new Date().toISOString(),
+      lastLoginAt: new Date().toISOString(),
+      token: buildToken(accountId),
+    }
+
+    mockAccounts.push(newAccount)
+
     return {
-      user: {
-        id: "2",
-        email: data.email,
-        name: data.name,
-        avatar: "",
-        role: "user",
-        createdAt: new Date().toISOString(),
-      },
-      token: "mock_jwt_token_" + Date.now(),
+      user: newAccount,
+      token: newAccount.token,
       expiresIn: 86400,
+      accounts: [...mockAccounts],
     }
   },
 
   forgotPassword: async (email: string): Promise<void> => {
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    await new Promise((resolve) => setTimeout(resolve, 500))
     console.log("发送重置密码邮件到:", email)
   },
 
   resetPassword: async (token: string, password: string): Promise<void> => {
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    await new Promise((resolve) => setTimeout(resolve, 500))
     console.log("重置密码:", token, password)
   },
 
@@ -136,19 +204,22 @@ export const authApi = {
     Cookies.remove("token")
   },
 
-  getCurrentUser: async (): Promise<User | null> => {
+  getCurrentUser: async (): Promise<CurrentUserResponse | null> => {
     const token = Cookies.get("token")
     if (!token) return null
 
-    // 模拟获取当前用户
+    const account = findAccountByToken(token)
+    if (!account) return null
+
     return {
-      id: "1",
-      email: "admin@example.com",
-      name: "管理员",
-      avatar: "",
-      role: "admin",
-      createdAt: new Date().toISOString(),
+      user: account,
+      accounts: [...mockAccounts],
     }
+  },
+
+  getAccounts: async (): Promise<AccountWithToken[]> => {
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    return [...mockAccounts]
   },
 }
 

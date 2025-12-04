@@ -1,19 +1,33 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+"use client"
 
-import { User,userService } from "@/lib/api/services"
+import { useQuery } from "@tanstack/react-query"
 
-// 查询键
-export const userKeys = {
-  all: ["users"] as const,
-  lists: () => [...userKeys.all, "list"] as const,
-  list: (filters: Record<string, unknown>) =>
-    [...userKeys.lists(), filters] as const,
-  details: () => [...userKeys.all, "detail"] as const,
-  detail: (id: string) => [...userKeys.details(), id] as const,
-  roles: ["roles"] as const,
-}
+import type { UserFormData } from "@/actions"
+import {
+  batchDeleteUsersAction,
+  createUserAction,
+  deleteUserAction,
+  updateUserAction,
+  updateUserStatusAction,
+} from "@/actions"
+import { apiRouter } from "@/lib/api/api-router"
+import type { User, UserStatus } from "@/lib/api/types"
+import { userKeys } from "@/lib/query-keys"
 
-// 获取用户列表
+import {
+  useActionMutation,
+  useActionMutationVoid,
+  useBatchActionMutation,
+  useOptimisticListUpdate,
+} from "./use-action-mutation"
+
+// ============================================================================
+// 查询 Hooks
+// ============================================================================
+
+/**
+ * 获取用户列表
+ */
 export function useUsers(params?: {
   page?: number
   pageSize?: number
@@ -23,61 +37,210 @@ export function useUsers(params?: {
 }) {
   return useQuery({
     queryKey: userKeys.list(params || {}),
-    queryFn: () => userService.getUsers(params),
+    queryFn: async () => {
+      const response = await apiRouter.user.getUsers(params)
+      return response.data
+    },
   })
 }
 
-// 获取单个用户
+/**
+ * 获取单个用户
+ */
 export function useUser(id: string) {
   return useQuery({
     queryKey: userKeys.detail(id),
-    queryFn: () => userService.getUser(id),
+    queryFn: async () => {
+      const response = await apiRouter.user.getUser(id)
+      return response.data
+    },
     enabled: !!id,
   })
 }
 
-// 获取角色列表
+/**
+ * 获取角色列表
+ */
 export function useRoles() {
   return useQuery({
-    queryKey: userKeys.roles,
-    queryFn: () => userService.getRoles(),
-  })
-}
-
-// 创建用户
-export function useCreateUser() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: (data: Partial<User>) => userService.createUser(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: userKeys.lists() })
+    queryKey: userKeys.all,
+    queryFn: async () => {
+      const response = await apiRouter.role.getRoles()
+      return response.data
     },
   })
 }
 
-// 更新用户
-export function useUpdateUser() {
-  const queryClient = useQueryClient()
+// ============================================================================
+// Mutation Hooks（使用 Server Actions）
+// ============================================================================
 
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<User> }) =>
-      userService.updateUser(id, data),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: userKeys.lists() })
-      queryClient.invalidateQueries({ queryKey: userKeys.detail(id) })
-    },
+/**
+ * 创建用户
+ *
+ * @example
+ * ```tsx
+ * const { mutate, isPending } = useCreateUser()
+ *
+ * mutate({
+ *   name: "张三",
+ *   email: "zhangsan@example.com",
+ *   role: "user",
+ * })
+ * ```
+ */
+export function useCreateUser(options?: {
+  onSuccess?: (data: User) => void
+  onError?: (error: Error) => void
+}) {
+  return useActionMutation<User, UserFormData>(createUserAction, {
+    invalidateKeys: [userKeys.lists()],
+    onSuccess: options?.onSuccess,
+    onError: options?.onError,
   })
 }
 
-// 删除用户
-export function useDeleteUser() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: (id: string) => userService.deleteUser(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: userKeys.lists() })
+/**
+ * 更新用户
+ *
+ * @example
+ * ```tsx
+ * const { mutate } = useUpdateUser()
+ *
+ * mutate({
+ *   id: "user-id",
+ *   data: { name: "新名字" },
+ * })
+ * ```
+ */
+export function useUpdateUser(options?: {
+  onSuccess?: (data: User) => void
+  onError?: (error: Error) => void
+}) {
+  return useActionMutation<User, { id: string; data: Partial<UserFormData> }>(
+    async ({ id, data }) => {
+      return updateUserAction(id, data)
     },
+    {
+      invalidateKeys: [userKeys.lists()],
+      onSuccess: options?.onSuccess,
+      onError: options?.onError,
+    }
+  )
+}
+
+/**
+ * 删除用户
+ *
+ * @example
+ * ```tsx
+ * const { mutate } = useDeleteUser()
+ *
+ * mutate("user-id")
+ * ```
+ */
+export function useDeleteUser(options?: {
+  onSuccess?: (id: string) => void
+  onError?: (error: Error) => void
+}) {
+  const { removeItem } = useOptimisticListUpdate<User>(userKeys.lists())
+
+  return useActionMutationVoid<string>(deleteUserAction, {
+    invalidateKeys: [userKeys.lists()],
+    optimisticUpdate: (_, id) => removeItem(id),
+    onSuccess: options?.onSuccess,
+    onError: options?.onError,
   })
 }
+
+/**
+ * 批量删除用户
+ *
+ * @example
+ * ```tsx
+ * const { mutate } = useBatchDeleteUsers()
+ *
+ * mutate(["id1", "id2", "id3"])
+ * ```
+ */
+export function useBatchDeleteUsers(options?: {
+  onSuccess?: (ids: string[]) => void
+  onError?: (error: Error) => void
+}) {
+  return useBatchActionMutation<string>(batchDeleteUsersAction, {
+    invalidateKeys: [userKeys.lists()],
+    optimisticUpdate: (queryClient, ids) => {
+      const queryKey = userKeys.lists()
+      const previousData = queryClient.getQueryData<{ list: User[] }>(queryKey)
+
+      if (previousData) {
+        queryClient.setQueryData<{ list: User[] }>(queryKey, {
+          ...previousData,
+          list: previousData.list.filter((user) => !ids.includes(user.id)),
+        })
+      }
+
+      return () => {
+        if (previousData) {
+          queryClient.setQueryData(queryKey, previousData)
+        }
+      }
+    },
+    onSuccess: options?.onSuccess,
+    onError: options?.onError,
+  })
+}
+
+/**
+ * 更新用户状态
+ *
+ * @example
+ * ```tsx
+ * const { mutate } = useUpdateUserStatus()
+ *
+ * mutate({ id: "user-id", status: "active" })
+ * ```
+ */
+export function useUpdateUserStatus(options?: {
+  onSuccess?: (data: User) => void
+  onError?: (error: Error) => void
+}) {
+  return useActionMutation<
+    User,
+    { id: string; status: UserStatus }
+  >(
+    async ({ id, status }) => {
+      return updateUserStatusAction(id, status)
+    },
+    {
+      invalidateKeys: [userKeys.lists()],
+      optimisticUpdate: (queryClient, { id, status }) => {
+        const queryKey = userKeys.lists()
+        const previousData = queryClient.getQueryData<{ list: User[] }>(queryKey)
+
+        if (previousData) {
+          queryClient.setQueryData<{ list: User[] }>(queryKey, {
+            ...previousData,
+            list: previousData.list.map((user) =>
+              user.id === id ? { ...user, status } : user
+            ),
+          })
+        }
+
+        return () => {
+          if (previousData) {
+            queryClient.setQueryData(queryKey, previousData)
+          }
+        }
+      },
+      onSuccess: options?.onSuccess,
+      onError: options?.onError,
+    }
+  )
+}
+
+// ============================================================================
+// 重新导出 Query Keys（便于外部使用）
+// ============================================================================
+
+export { userKeys }

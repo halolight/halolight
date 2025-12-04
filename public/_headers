@@ -1,0 +1,63 @@
+# Cloudflare Pages HTTP Headers
+# 文档: https://developers.cloudflare.com/pages/configuration/headers/
+# 注意: 更具体的路径优先匹配，/* 作为默认规则放在最后
+
+# 静态资源长期缓存（带 hash 的文件）
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Next.js 数据路由（ISR/SSG）
+/_next/data/*
+  Cache-Control: public, max-age=0, s-maxage=31536000, stale-while-revalidate=60
+
+# 图片资源缓存
+/*.svg
+  Cache-Control: public, max-age=31536000, immutable
+/*.png
+  Cache-Control: public, max-age=31536000, immutable
+/*.jpg
+  Cache-Control: public, max-age=31536000, immutable
+/*.jpeg
+  Cache-Control: public, max-age=31536000, immutable
+/*.gif
+  Cache-Control: public, max-age=31536000, immutable
+/*.webp
+  Cache-Control: public, max-age=31536000, immutable
+/*.avif
+  Cache-Control: public, max-age=31536000, immutable
+/*.ico
+  Cache-Control: public, max-age=31536000, immutable
+
+# 字体文件缓存
+/*.woff
+  Cache-Control: public, max-age=31536000, immutable
+/*.woff2
+  Cache-Control: public, max-age=31536000, immutable
+/*.ttf
+  Cache-Control: public, max-age=31536000, immutable
+/*.otf
+  Cache-Control: public, max-age=31536000, immutable
+/*.eot
+  Cache-Control: public, max-age=31536000, immutable
+
+# JS/CSS 静态资源
+/*.js
+  Cache-Control: public, max-age=31536000, immutable
+/*.css
+  Cache-Control: public, max-age=31536000, immutable
+
+# PWA 相关文件
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate
+  Service-Worker-Allowed: /
+
+/manifest.json
+  Cache-Control: public, max-age=86400
+
+# icons 目录长期缓存
+/icons/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# HTML 页面不缓存（默认规则，放在最后）
+/*
+  Cache-Control: private, no-cache, no-store, max-age=0, must-revalidate

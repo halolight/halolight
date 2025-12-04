@@ -122,4 +122,5 @@ Mock.mock(/\/api\/files\/[a-zA-Z0-9-]+\/rename/, "put", () => {
   }
 })
 
-export default {}
+const fileMock = {}
+export default fileMock

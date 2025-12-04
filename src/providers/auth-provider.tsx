@@ -30,12 +30,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   React.useEffect(() => {
     const initAuth = async () => {
-      // 只在需要时才显示加载状态
-      const hasPersistedAuth = localStorage.getItem('auth-storage')
+      const hasPersistedAuth = localStorage.getItem("auth-storage")
+      // 先标记初始化完成，避免在公开页面被 checkAuth 阻塞导致跳转延迟
+      setIsInitialized(true)
+
       if (!hasPersistedAuth || isPublicRoute) {
         await checkAuth()
       }
-      setIsInitialized(true)
     }
     initAuth()
   }, [checkAuth, isPublicRoute])
@@ -49,8 +50,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [isInitialized, isAuthenticated, isPublicRoute, router])
 
-  // 只在特定情况下显示加载状态
-  if (!isInitialized || (isLoading && !isAuthenticated)) {
+  // 公开路由不显示加载状态，避免登录页面闪烁
+  const shouldShowLoading =
+    !isInitialized || (!isAuthenticated && !isPublicRoute && isLoading)
+
+  if (shouldShowLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">

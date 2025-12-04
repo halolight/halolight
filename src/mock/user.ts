@@ -100,7 +100,7 @@ Mock.mock("/api/user/current", "get", () => {
     data: {
       id: Mock.Random.guid(),
       name: Mock.Random.cname(),
-      email: "admin@example.com",
+      email: "admin@halolight.h7ml.cn",
       avatar: Mock.Random.image("100x100", "#4A90E2", "#fff", "A"),
       role: roles[0], // admin
       permissions: ["*"],
@@ -149,4 +149,5 @@ Mock.mock("/api/roles", "get", () => {
   }
 })
 
-export default {}
+const userMock = {}
+export default userMock

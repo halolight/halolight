@@ -1,25 +1,67 @@
 import "./globals.css";
 
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
+import Script from "next/script";
 
-import { MockProvider } from "@/components/mock-provider";
-import { AuthProvider } from "@/providers/auth-provider";
-import { ErrorProvider } from "@/providers/error-provider";
-import { PermissionProvider } from "@/providers/permission-provider";
-import { QueryProvider } from "@/providers/query-provider";
-import { ThemeProvider } from "@/providers/theme-provider";
-import { WebSocketProvider } from "@/providers/websocket-provider";
+import { AppProviders } from "@/providers/app-providers";
 
-const inter = Inter({
+// 使用本地字体，避免依赖 Google Fonts（大陆访问受限）
+// 字体文件位于 public/fonts 目录
+// 只预加载 Regular 字重，其他按需加载以减少首屏资源
+const inter = localFont({
+  src: [
+    {
+      path: "../../public/fonts/Inter-Regular.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/Inter-Medium.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/Inter-SemiBold.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/Inter-Bold.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
   variable: "--font-geist-sans",
-  subsets: ["latin"],
+  display: "swap",
+  preload: false, // 禁用自动预加载，按需加载字体
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const jetbrainsMono = localFont({
+  src: [
+    {
+      path: "../../public/fonts/JetBrainsMono-Regular.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/JetBrainsMono-Medium.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/JetBrainsMono-Bold.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  display: "swap",
+  preload: false, // 代码字体按需加载
 });
+
+// Google Analytics ID（通过环境变量配置，大陆部署可留空禁用）
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 
 export const viewport: Viewport = {
   themeColor: [
@@ -51,6 +93,13 @@ export const metadata: Metadata = {
   },
 };
 
+// 全局关闭静态预渲染，避免客户端上下文依赖在构建时执行
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+// Cloudflare Pages 需要 Edge Runtime
+export const runtime = "edge";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -58,28 +107,34 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN" suppressHydrationWarning>
+      <head>
+        {/* 51.la 图片统计（无 JS 依赖，兼容性最好） */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="https://web.51.la/go?id=L1NaKSoU1jvMh9mE"
+          alt=""
+          width={0}
+          height={0}
+          style={{ display: "none" }}
+        />
+        {/* Google Analytics（通过环境变量控制，大陆部署可禁用） */}
+        {/* 使用 lazyOnload 避免预加载警告，不影响核心功能 */}
+        {GA_ID && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+              strategy="lazyOnload"
+            />
+            <Script id="google-analytics" strategy="lazyOnload">
+              {`window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config', '${GA_ID}');`}
+            </Script>
+          </>
+        )}
+      </head>
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-        >
-          <MockProvider>
-            <QueryProvider>
-              <AuthProvider>
-                <PermissionProvider>
-                  <WebSocketProvider>
-                    <ErrorProvider>
-                      {children}
-                    </ErrorProvider>
-                  </WebSocketProvider>
-                </PermissionProvider>
-              </AuthProvider>
-            </QueryProvider>
-          </MockProvider>
-        </ThemeProvider>
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );

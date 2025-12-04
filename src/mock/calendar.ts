@@ -163,4 +163,5 @@ Mock.mock(/\/api\/calendar\/events\/[a-zA-Z0-9-]+/, "delete", () => {
   }
 })
 
-export default {}
+const calendarMock = {}
+export default calendarMock

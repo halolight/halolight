@@ -114,4 +114,5 @@ Mock.mock(/\/api\/documents\/[a-zA-Z0-9-]+/, "delete", () => {
   }
 })
 
-export default {}
+const documentMock = {}
+export default documentMock

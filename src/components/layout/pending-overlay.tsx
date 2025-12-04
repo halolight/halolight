@@ -18,6 +18,8 @@ interface PendingOverlayProps {
    * 默认 250ms。
    */
   delay?: number
+  /** 展示模式：跳转 or 刷新 */
+  mode?: "navigate" | "refresh"
 }
 
 const DEFAULT_TIPS = [
@@ -33,11 +35,13 @@ export function PendingOverlay({
   visible, 
   label, 
   className,
-  delay = 250 
+  delay = 250,
+  mode = "navigate",
 }: PendingOverlayProps) {
   const [show, setShow] = React.useState(false)
   const [tipIndex, setTipIndex] = React.useState(0)
   const [isTakingLong, setIsTakingLong] = React.useState(false)
+  const displayDelay = mode === "refresh" ? 0 : delay
 
   // 1. 处理防闪烁逻辑 (Grace Period)
   React.useEffect(() => {
@@ -48,7 +52,7 @@ export function PendingOverlay({
       // 只有当 visible 持续时间超过 delay 时，才真正显示 UI
       timer = setTimeout(() => {
         setShow(true)
-      }, delay)
+      }, displayDelay)
 
       // 如果显示超过 8 秒，标记为长时间加载
       longTimer = setTimeout(() => {
@@ -65,7 +69,7 @@ export function PendingOverlay({
       clearTimeout(timer)
       clearTimeout(longTimer)
     }
-  }, [visible, delay])
+  }, [visible, displayDelay])
 
   // 2. 处理提示语轮播
   React.useEffect(() => {
@@ -171,9 +175,13 @@ export function PendingOverlay({
               {/* 右侧文字信息 */}
               <div className="flex flex-col gap-1.5 min-w-0 flex-1">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
                     <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/80">
-                      {isTakingLong ? "稍安勿躁" : "正在前往"}
+                      {isTakingLong
+                        ? "稍安勿躁"
+                        : mode === "refresh"
+                          ? "正在刷新"
+                          : "正在前往"}
                     </p>
                     {isTakingLong ? (
                        <Zap className="h-3 w-3 text-orange-400/70" />
@@ -195,7 +203,12 @@ export function PendingOverlay({
                       >
                          {isTakingLong 
                             ? "网络稍微有点慢，请耐心等待..." 
-                            : (label || DEFAULT_TIPS[tipIndex])}
+                            : (
+                              label 
+                                || (mode === "refresh" 
+                                  ? "正在刷新当前页面..." 
+                                  : DEFAULT_TIPS[tipIndex])
+                            )}
                       </motion.p>
                    </AnimatePresence>
                 </div>

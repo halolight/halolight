@@ -44,9 +44,12 @@ const defaultWidgets: DashboardWidget[] = [
   { id: "stats-1", type: "stats", title: "数据概览" },
   { id: "chart-line-1", type: "chart-line", title: "访问趋势" },
   { id: "chart-bar-1", type: "chart-bar", title: "销售统计" },
+  { id: "chart-pie-1", type: "chart-pie", title: "流量占比" },
   { id: "recent-users-1", type: "recent-users", title: "最近用户" },
   { id: "notifications-1", type: "notifications", title: "最新通知" },
   { id: "tasks-1", type: "tasks", title: "待办任务" },
+  { id: "calendar-1", type: "calendar", title: "今日日程" },
+  { id: "quick-actions-1", type: "quick-actions", title: "快捷操作" },
 ]
 
 // 默认布局
@@ -54,9 +57,12 @@ const defaultLayouts: DashboardLayout[] = [
   { i: "stats-1", x: 0, y: 0, w: 12, h: 2, minW: 6, minH: 2 },
   { i: "chart-line-1", x: 0, y: 2, w: 8, h: 4, minW: 4, minH: 3 },
   { i: "chart-bar-1", x: 8, y: 2, w: 4, h: 4, minW: 3, minH: 3 },
-  { i: "recent-users-1", x: 0, y: 6, w: 4, h: 4, minW: 3, minH: 3 },
-  { i: "notifications-1", x: 4, y: 6, w: 4, h: 4, minW: 3, minH: 3 },
-  { i: "tasks-1", x: 8, y: 6, w: 4, h: 4, minW: 3, minH: 3 },
+  { i: "chart-pie-1", x: 0, y: 6, w: 4, h: 4, minW: 3, minH: 3 },
+  { i: "recent-users-1", x: 4, y: 6, w: 4, h: 4, minW: 3, minH: 3 },
+  { i: "notifications-1", x: 8, y: 6, w: 4, h: 4, minW: 3, minH: 3 },
+  { i: "tasks-1", x: 0, y: 10, w: 4, h: 4, minW: 3, minH: 3 },
+  { i: "calendar-1", x: 4, y: 10, w: 4, h: 4, minW: 3, minH: 3 },
+  { i: "quick-actions-1", x: 8, y: 10, w: 4, h: 4, minW: 3, minH: 3 },
 ]
 
 export const useDashboardStore = create<DashboardState>()(
@@ -83,9 +89,9 @@ export const useDashboardStore = create<DashboardState>()(
           x: 0,
           y: maxY,
           w: 4,
-          h: 3,
+          h: widget.type === "quick-actions" ? 4 : 3,
           minW: 3,
-          minH: 2,
+          minH: widget.type === "quick-actions" ? 3 : 2,
         }
 
         set({

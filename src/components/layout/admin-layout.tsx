@@ -1,13 +1,26 @@
 "use client"
 
 import { AnimatePresence, motion } from "framer-motion"
+import { ShieldOff } from "lucide-react"
+import Link from "next/link"
 import { usePathname } from "next/navigation"
 import * as React from "react"
 
-import { Sheet, SheetContent } from "@/components/ui/sheet"
-import { useTitle } from "@/hooks"
+import { BackToTop } from "@/components/ui/back-to-top"
+import { Button } from "@/components/ui/button"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
+import { findPermissionRule } from "@/config/routes"
 import { KeepAliveWrapper } from "@/hooks/use-keep-alive"
+import type { Permission } from "@/lib/api/types"
+import { PermissionGuard } from "@/providers/permission-provider"
 import { useNavigationStore } from "@/stores/navigation-store"
+import { useUiSettingsStore } from "@/stores/ui-settings-store"
 
 import { CommandMenu } from "./command-menu"
 import { Footer } from "./footer"
@@ -17,7 +30,6 @@ import { Sidebar } from "./sidebar"
 import { TabBar } from "./tab-bar"
 
 const SIDEBAR_COLLAPSED_KEY = "sidebar-collapsed"
-const FOOTER_VISIBLE_KEY = "footer-visible"
 
 interface AdminLayoutProps {
   children: React.ReactNode
@@ -32,26 +44,25 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     }
     return false
   })
-  const [footerVisible, setFooterVisible] = React.useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
   const [commandOpen, setCommandOpen] = React.useState(false)
   const [isDesktop, setIsDesktop] = React.useState(true)
-  const { pendingPath, label, finishNavigation } = useNavigationStore()
+  const { pendingPath, label, source, finishNavigation } = useNavigationStore()
+  const {
+    showFooter,
+    showTabBar,
+    mobileHeaderFixed,
+    mobileTabBarFixed,
+    skin,
+  } = useUiSettingsStore()
   const pathname = usePathname()
-  const titleMap: Record<string, string> = {
-    "/": "仪表盘",
-    "/users": "用户管理",
-    "/analytics": "数据分析",
-    "/documents": "文档管理",
-    "/files": "文件存储",
-    "/messages": "消息中心",
-    "/calendar": "日程安排",
-    "/notifications": "通知中心",
-    "/settings": "系统设置",
-    "/profile": "个人资料",
-    "/docs": "帮助文档",
-  }
-  useTitle(titleMap[pathname] ?? "Admin Pro")
+
+  // 使用集中配置获取权限规则
+  const matchedRule = React.useMemo(
+    () => findPermissionRule(pathname),
+    [pathname]
+  )
+  const requiredPermission = matchedRule?.permission
 
   // 持久化侧边栏状态
   const handleSidebarCollapse = React.useCallback((collapsed: boolean) => {
@@ -65,11 +76,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     if (saved !== null) {
       setSidebarCollapsed(saved === "true")
     }
-
-    const savedFooter = localStorage.getItem(FOOTER_VISIBLE_KEY)
-    if (savedFooter !== null) {
-      setFooterVisible(savedFooter !== "false")
-    }
   }, [])
 
   React.useEffect(() => {
@@ -82,16 +88,55 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   }, [])
 
   React.useEffect(() => {
-    localStorage.setItem(FOOTER_VISIBLE_KEY, String(footerVisible))
-  }, [footerVisible])
-
-  React.useEffect(() => {
-    if (pendingPath && pathname === pendingPath) {
+    if (!pendingPath) return
+    // 刷新场景下由 tabs 控制显隐，避免被同步路径立即关闭
+    if (source === "tabbar-refresh") return
+    if (pathname === pendingPath) {
       finishNavigation()
     }
-  }, [pathname, pendingPath, finishNavigation])
+  }, [pathname, pendingPath, source, finishNavigation])
 
-  const marginLeft = isDesktop ? (sidebarCollapsed ? 64 : 240) : 0
+  React.useEffect(() => {
+    const root = document.documentElement
+    if (skin === "default") {
+      root.removeAttribute("data-skin")
+      return
+    }
+    root.dataset.skin = skin
+  }, [skin])
+
+  const marginLeft = isDesktop ? (sidebarCollapsed ? 64 : 220) : 0
+  const MOBILE_HEADER_HEIGHT = 64
+  const MOBILE_TABBAR_HEIGHT = 48
+  const additionalTopOffset =
+    !isDesktop && mobileHeaderFixed ? MOBILE_HEADER_HEIGHT : 0
+  const additionalTabOffset =
+    !isDesktop && mobileTabBarFixed && showTabBar
+      ? MOBILE_TABBAR_HEIGHT
+      : 0
+  const mainPaddingTop =
+    !isDesktop && (additionalTopOffset || additionalTabOffset)
+      ? 24 + additionalTopOffset + additionalTabOffset
+      : undefined
+  const guardedContent = requiredPermission ? (
+    <PermissionGuard
+      permission={requiredPermission}
+      fallback={
+        <PermissionFallback
+          permission={requiredPermission}
+          label={matchedRule?.label}
+        />
+      }
+    >
+      <KeepAliveWrapper>
+        {children}
+      </KeepAliveWrapper>
+    </PermissionGuard>
+  ) : (
+    <KeepAliveWrapper>
+      {children}
+    </KeepAliveWrapper>
+  )
 
   return (
     <div className="bg-background min-h-screen lg:h-dvh overflow-hidden flex flex-col">
@@ -105,8 +150,21 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
       {/* 移动端侧边栏 */}
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <SheetContent side="left" className="w-64 p-0">
-          <Sidebar collapsed={false} onCollapsedChange={() => {}} />
+        <SheetContent
+          side="left"
+          className="w-[280px] min-w-[220px] p-0"
+          showCloseButton={false}
+        >
+          <SheetHeader className="sr-only">
+            <SheetTitle>移动导航</SheetTitle>
+            <SheetDescription>移动端侧边栏导航菜单</SheetDescription>
+          </SheetHeader>
+          <Sidebar
+            collapsed={false}
+            onCollapsedChange={() => setMobileMenuOpen(false)}
+            expandedWidth="100%"
+            fixed={false}
+          />
         </SheetContent>
       </Sheet>
 
@@ -115,38 +173,106 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         initial={false}
         animate={{ marginLeft }}
         transition={{ duration: 0.2, ease: "easeInOut" }}
-        className="relative grid h-full min-h-0 grid-rows-[auto_auto_1fr_auto] overflow-hidden"
+        className="relative flex flex-1 min-h-0 flex-col overflow-hidden"
       >
         <Header
           onMenuClick={() => setMobileMenuOpen(true)}
           onSearchClick={() => setCommandOpen(true)}
-          footerVisible={footerVisible}
-          onFooterToggle={setFooterVisible}
         />
 
         {/* 多标签栏 */}
-        <TabBar />
+        <AnimatePresence initial={false}>
+          {showTabBar && (
+            <motion.div
+              key="tabbar"
+              initial={{ opacity: 0, height: 0, y: -6 }}
+              animate={{ opacity: 1, height: "auto", y: 0 }}
+              exit={{ opacity: 0, height: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+              className="overflow-hidden"
+            >
+              <TabBar />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <AnimatePresence mode="wait">
           <motion.main
+            id="main-scroll-container"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
-            className="p-6 min-h-0 overflow-y-auto"
+            className="flex-1 p-6 min-h-0 overflow-y-auto"
+            style={mainPaddingTop ? { paddingTop: mainPaddingTop } : undefined}
           >
-            <KeepAliveWrapper>
-              {children}
-            </KeepAliveWrapper>
+            {guardedContent}
           </motion.main>
         </AnimatePresence>
-        {footerVisible && <Footer />}
+        <AnimatePresence initial={false}>
+          {showFooter && (
+            <motion.div
+              key="footer"
+              initial={{ opacity: 0, height: 0, y: 10 }}
+              animate={{ opacity: 1, height: "auto", y: 0 }}
+              exit={{ opacity: 0, height: 0, y: 10 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <Footer />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
 
       {/* 命令面板 */}
       <CommandMenu open={commandOpen} onOpenChange={setCommandOpen} />
 
-      <PendingOverlay visible={!!pendingPath} label={label} />
+      {/* 返回顶部 */}
+      <BackToTop
+        threshold={200}
+        duration={400}
+        scrollContainerSelector="#main-scroll-container"
+      />
+
+      {/* 挂起加载 */}
+      <PendingOverlay
+        visible={!!pendingPath}
+        label={label}
+        mode={source === "tabbar-refresh" ? "refresh" : "navigate"}
+        delay={source === "tabbar-refresh" ? 0 : undefined}
+      />
+
+    </div>
+  )
+}
+
+function PermissionFallback({
+  permission,
+  label,
+}: {
+  permission?: Permission
+  label?: string
+}) {
+  return (
+    <div className="flex h-full items-center justify-center">
+      <div className="max-w-md rounded-2xl border border-dashed border-border bg-card/40 p-8 text-center shadow-sm">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+          <ShieldOff className="h-6 w-6" />
+        </div>
+        <h2 className="mt-4 text-xl font-semibold">权限不足</h2>
+        <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+          您没有访问 {label || "该页面"} 所需的权限
+          {permission ? `（${permission}）` : ""}。请尝试切换账号或联系管理员开通。
+        </p>
+        <div className="mt-6 flex items-center justify-center gap-3">
+          <Button asChild variant="outline">
+            <Link href="/">
+              返回首页
+            </Link>
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }

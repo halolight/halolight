@@ -18,6 +18,7 @@ import {
 } from "recharts"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useChartPalette } from "@/hooks/use-chart-palette"
 
 // 模拟数据
 const revenueData = [
@@ -40,14 +41,9 @@ const trafficData = [
   { name: "周日", pv: 3490, uv: 4300 },
 ]
 
-const pieData = [
-  { name: "直接访问", value: 400, color: "hsl(var(--chart-1))" },
-  { name: "搜索引擎", value: 300, color: "hsl(var(--chart-2))" },
-  { name: "社交媒体", value: 200, color: "hsl(var(--chart-3))" },
-  { name: "邮件营销", value: 100, color: "hsl(var(--chart-4))" },
-]
-
 export function RevenueChart() {
+  const palette = useChartPalette()
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -65,8 +61,8 @@ export function RevenueChart() {
               <AreaChart data={revenueData}>
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0} />
+                    <stop offset="5%" stopColor={palette.primary} stopOpacity={0.3} />
+                    <stop offset="95%" stopColor={palette.primary} stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
@@ -82,7 +78,7 @@ export function RevenueChart() {
                 <Area
                   type="monotone"
                   dataKey="revenue"
-                  stroke="hsl(var(--chart-1))"
+                  stroke={palette.primary}
                   fillOpacity={1}
                   fill="url(#colorRevenue)"
                   strokeWidth={2}
@@ -97,6 +93,8 @@ export function RevenueChart() {
 }
 
 export function TrafficChart() {
+  const palette = useChartPalette()
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -122,8 +120,8 @@ export function TrafficChart() {
                     borderRadius: "var(--radius)",
                   }}
                 />
-                <Bar dataKey="pv" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="uv" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="pv" fill={palette.primary} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="uv" fill={palette.secondary} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -134,6 +132,17 @@ export function TrafficChart() {
 }
 
 export function SourceChart() {
+  const palette = useChartPalette()
+  const pieData = React.useMemo(
+    () => [
+      { name: "直接访问", value: 400, color: palette.primary },
+      { name: "搜索引擎", value: 300, color: palette.secondary },
+      { name: "社交媒体", value: 200, color: palette.tertiary },
+      { name: "邮件营销", value: 100, color: palette.quaternary },
+    ],
+    [palette.primary, palette.quaternary, palette.secondary, palette.tertiary]
+  )
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}

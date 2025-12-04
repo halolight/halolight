@@ -63,4 +63,5 @@ Mock.mock(/\/api\/notifications\/[a-zA-Z0-9-]+/, "delete", () => {
   }
 })
 
-export default {}
+const notificationMock = {}
+export default notificationMock

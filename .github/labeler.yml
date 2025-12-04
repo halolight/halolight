@@ -1,0 +1,94 @@
+# 组件相关
+components:
+  - changed-files:
+      - any-glob-to-any-file: 'src/components/**/*'
+
+# UI 组件
+ui:
+  - changed-files:
+      - any-glob-to-any-file: 'src/components/ui/**/*'
+
+# 认证相关
+auth:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/app/(auth)/**/*'
+          - 'src/components/auth/**/*'
+          - 'src/lib/auth/**/*'
+
+# 仪表盘
+dashboard:
+  - changed-files:
+      - any-glob-to-any-file: 'src/app/(dashboard)/**/*'
+
+# 配置文件
+config:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '*.config.*'
+          - '.github/**/*'
+          - 'tailwind.config.*'
+
+# 依赖更新
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'package.json'
+          - 'pnpm-lock.yaml'
+
+# 文档
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.md'
+          - 'docs/**/*'
+
+# 测试
+test:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.test.*'
+          - '**/*.spec.*'
+          - 'tests/**/*'
+          - '__tests__/**/*'
+
+# 样式
+styles:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.css'
+          - '**/*.scss'
+          - 'src/styles/**/*'
+
+# API/Actions
+api:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/actions/**/*'
+          - 'src/app/api/**/*'
+          - 'src/lib/api/**/*'
+
+# Mock 数据
+mock:
+  - changed-files:
+      - any-glob-to-any-file: 'src/mock/**/*'
+
+# Hooks
+hooks:
+  - changed-files:
+      - any-glob-to-any-file: 'src/hooks/**/*'
+
+# 工具函数
+utils:
+  - changed-files:
+      - any-glob-to-any-file: 'src/lib/**/*'
+
+# 状态管理
+state:
+  - changed-files:
+      - any-glob-to-any-file: 'src/stores/**/*'
+
+# 类型定义
+types:
+  - changed-files:
+      - any-glob-to-any-file: 'src/types/**/*'
