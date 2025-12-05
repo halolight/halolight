@@ -108,15 +108,6 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <head>
-        {/* 51.la 图片统计（无 JS 依赖，兼容性最好） */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="https://web.51.la/go?id=L1NaKSoU1jvMh9mE"
-          alt=""
-          width={0}
-          height={0}
-          style={{ display: "none" }}
-        />
         {/* Google Analytics（通过环境变量控制，大陆部署可禁用） */}
         {/* 使用 lazyOnload 避免预加载警告，不影响核心功能 */}
         {GA_ID && (
@@ -134,6 +125,15 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}
       >
+        {/* 51.la 图片统计（无 JS 依赖，兼容性最好） */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="https://web.51.la/go?id=L1NaKSoU1jvMh9mE"
+          alt=""
+          width={0}
+          height={0}
+          style={{ display: "none" }}
+        />
         <AppProviders>{children}</AppProviders>
       </body>
     </html>
