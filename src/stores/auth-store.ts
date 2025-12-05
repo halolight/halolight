@@ -1,4 +1,3 @@
-import Cookies from "js-cookie"
 import { create } from "zustand"
 import { createJSONStorage, persist } from "zustand/middleware"
 
@@ -7,6 +6,7 @@ import {
   authApi,
   LoginRequest,
   RegisterRequest,
+  tokenStorage,
 } from "@/lib/api/client"
 
 interface AuthState {
@@ -30,12 +30,6 @@ interface AuthState {
   clearError: () => void
 }
 
-const cookieOptions = (days = 1) => ({
-  expires: days,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "strict" as const,
-})
-
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -52,7 +46,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           const response = await authApi.login(data)
 
-          Cookies.set("token", response.token, cookieOptions(data.remember ? 7 : 1))
+          // Token 已在 authApi.login 中通过 tokenStorage.setTokens 存储
 
           set({
             user: response.user,
@@ -76,7 +70,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           const response = await authApi.register(data)
 
-          Cookies.set("token", response.token, cookieOptions())
+          // Token 已在 authApi.register 中通过 tokenStorage.setTokens 存储
 
           set({
             user: response.user,
@@ -100,7 +94,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           await authApi.logout()
         } finally {
-          Cookies.remove("token")
+          // Token 已在 authApi.logout 中通过 tokenStorage.clear 清除
           set({
             user: null,
             token: null,
@@ -119,7 +113,8 @@ export const useAuthStore = create<AuthState>()(
           throw new Error("账号不存在")
         }
 
-        Cookies.set("token", account.token, cookieOptions(7))
+        // 切换账号时更新 token
+        tokenStorage.setTokens(account.token)
         set({
           user: account,
           token: account.token,
@@ -141,9 +136,9 @@ export const useAuthStore = create<AuthState>()(
             null
 
           if (nextUser) {
-            Cookies.set("token", nextUser.token, cookieOptions(7))
+            tokenStorage.setTokens(nextUser.token)
           } else {
-            Cookies.remove("token")
+            tokenStorage.clear()
           }
 
           set({
@@ -191,9 +186,10 @@ export const useAuthStore = create<AuthState>()(
       },
 
       checkAuth: async () => {
-        const token = Cookies.get("token")
+        const token = tokenStorage.getAccessToken()
         const { accounts } = get()
 
+        // 如果没有 token，清空状态（真实和Mock模式均适用）
         if (!token) {
           set({
             isAuthenticated: false,
@@ -205,32 +201,38 @@ export const useAuthStore = create<AuthState>()(
           return
         }
 
-        const cachedAccount = accounts.find((acc) => acc.token === token)
-        if (cachedAccount) {
-          set({
-            user: cachedAccount,
-            token,
-            activeAccountId: cachedAccount.id,
-            isAuthenticated: true,
-            isLoading: false,
-          })
-          return
+        // Mock 模式：尝试从缓存的账号列表中查找
+        if (process.env.NEXT_PUBLIC_MOCK === "true") {
+          const cachedAccount = accounts.find((acc) => acc.token === token)
+          if (cachedAccount) {
+            set({
+              user: cachedAccount,
+              token,
+              activeAccountId: cachedAccount.id,
+              isAuthenticated: true,
+              isLoading: false,
+            })
+            return
+          }
         }
 
+        // 从服务器获取当前用户信息
+        // 真实模式：通过 Authorization 头携带 token
+        // Mock 模式：如果缓存未命中也走这个流程
         set({ isLoading: true })
         try {
           const response = await authApi.getCurrentUser()
           if (response?.user) {
             set({
               user: response.user,
-              token,
+              token: token || response.user.token || null,
               accounts: response.accounts,
               activeAccountId: response.user.id,
               isAuthenticated: true,
               isLoading: false,
             })
           } else {
-            Cookies.remove("token")
+            tokenStorage.clear()
             set({
               isAuthenticated: false,
               user: null,
@@ -241,7 +243,7 @@ export const useAuthStore = create<AuthState>()(
             })
           }
         } catch {
-          Cookies.remove("token")
+          tokenStorage.clear()
           set({
             isAuthenticated: false,
             user: null,

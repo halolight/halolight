@@ -96,9 +96,9 @@ pnpm start       # 使用构建产物启动
 
 ```bash
 # .env.local 示例
-NEXT_PUBLIC_API_URL=https://api.example.com
+NEXT_PUBLIC_API_URL=https://api.halolight.h7ml.cn
 NEXT_PUBLIC_MOCK=true
-NEXT_PUBLIC_DEMO_EMAIL=admin@example.com
+NEXT_PUBLIC_DEMO_EMAIL=admin@halolight.h7ml.cn
 NEXT_PUBLIC_DEMO_PASSWORD=123456
 ```
 

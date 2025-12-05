@@ -1,4 +1,17 @@
 // API 服务基础配置
+import {
+  adaptBackendCurrentUser,
+  adaptBackendRole,
+  adaptBackendUser,
+  adaptBackendUserList,
+} from "./adapters"
+import type {
+  BackendCurrentUserResponse,
+  BackendPaginatedResponse,
+  BackendRole,
+  BackendUser,
+} from "./backend-types"
+import { tokenStorage } from "./client"
 import type {
   Activity,
   CalendarEvent,
@@ -26,73 +39,192 @@ import type {
   VisitData,
 } from "./types"
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api"
+// ============================================================================
+// 环境配置
+// ============================================================================
 
+const IS_MOCK_MODE = process.env.NEXT_PUBLIC_MOCK === "true"
+
+/**
+ * API 基础 URL 配置
+ * - Mock 模式: /api（使用 Next.js 路由代理）
+ * - 真实模式: 去除末尾的 /api 避免重复，然后拼接 /api
+ */
+const NORMALIZED_API_BASE = (
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+).replace(/\/api\/?$/, "")
+
+const API_BASE = IS_MOCK_MODE ? "/api" : `${NORMALIZED_API_BASE}/api`
+
+// ============================================================================
 // 通用请求封装
+// ============================================================================
+
+/**
+ * 通用 Fetch 请求封装
+ * 注意：此函数主要用于非认证相关的简单请求
+ * 对于需要 token 刷新的复杂场景，建议使用 apiClient（axios）
+ */
 async function request<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
   const url = `${API_BASE}${endpoint}`
 
+  // 构建请求头
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  }
+
+  // 合并自定义请求头
+  if (options.headers) {
+    Object.assign(headers, options.headers)
+  }
+
+  // 真实模式下添加 Authorization 头
+  if (!IS_MOCK_MODE) {
+    const token = tokenStorage.getAccessToken()
+    if (token) {
+      headers.Authorization = `Bearer ${token}`
+    }
+  }
+
   const response = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
     ...options,
+    headers,
   })
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+  }
 
   const data = await response.json()
 
-  if (data.code !== 200) {
-    throw new Error(data.message || "请求失败")
+  // Mock 模式：支持包装和非包装两种格式
+  if (IS_MOCK_MODE) {
+    // 检查是否为包装格式
+    if (typeof data === "object" && data && "code" in data && "data" in data) {
+      if (data.code !== 200) {
+        throw new Error((data as { message?: string }).message || "请求失败")
+      }
+      return (data as { data: T }).data
+    }
+    // 直接返回数据（非包装格式）
+    return data as T
   }
 
-  return data.data
+  // 真实 API 模式：直接返回数据
+  // 后端返回格式可能是：
+  // 1. 直接返回实体对象 (如 User, Document 等)
+  // 2. 分页格式 { data: [], meta: { total, page, limit } }
+  return data as T
 }
 
+// ============================================================================
 // 用户相关 API
+// ============================================================================
+
 export const userService = {
-  // 获取用户列表
-  getUsers: (params?: { page?: number; pageSize?: number; keyword?: string }) => {
-    const query = new URLSearchParams(params as Record<string, string>).toString()
-    return request<ListData<User>>(`/users${query ? `?${query}` : ""}`)
+  /**
+   * 获取用户列表
+   */
+  getUsers: async (params?: {
+    page?: number
+    pageSize?: number
+    keyword?: string
+  }): Promise<ListData<User>> => {
+    const query = new URLSearchParams(
+      params as Record<string, string>
+    ).toString()
+    const endpoint = `/users${query ? `?${query}` : ""}`
+
+    if (IS_MOCK_MODE) {
+      return request<ListData<User>>(endpoint)
+    }
+
+    // 真实模式：使用适配器转换后端分页响应
+    const response =
+      await request<BackendPaginatedResponse<BackendUser>>(endpoint)
+    return adaptBackendUserList(response)
   },
 
-  // 获取单个用户
-  getUser: (id: string) => request<User>(`/users/${id}`),
+  /**
+   * 获取单个用户
+   */
+  getUser: async (id: string): Promise<User> => {
+    if (IS_MOCK_MODE) {
+      return request<User>(`/users/${id}`)
+    }
 
-  // 创建用户
+    // 真实模式：使用适配器转换后端用户
+    const backendUser = await request<BackendUser>(`/users/${id}`)
+    // 使用 adaptBackendUser 而非 adaptBackendCurrentUser
+    // 因为 getUser 返回的可能没有 permissions 字段（非当前用户）
+    return adaptBackendUser(backendUser)
+  },
+
+  /**
+   * 创建用户
+   */
   createUser: (data: Partial<User>) =>
     request<User>("/users", {
       method: "POST",
       body: JSON.stringify(data),
     }),
 
-  // 更新用户
+  /**
+   * 更新用户
+   */
   updateUser: (id: string, data: Partial<User>) =>
     request<User>(`/users/${id}`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),
 
-  // 删除用户
+  /**
+   * 删除用户
+   */
   deleteUser: (id: string) =>
     request<void>(`/users/${id}`, { method: "DELETE" }),
 
-  // 登录
+  /**
+   * 登录（已废弃，请使用 authApi.login）
+   * @deprecated 使用 authApi.login 代替
+   */
   login: (email: string, password: string) =>
-    request<LoginResponse>("/user/login", {
+    request<LoginResponse>("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     }),
 
-  // 获取当前用户
-  getCurrentUser: () => request<User>("/user/current"),
+  /**
+   * 获取当前用户（已废弃，请使用 authApi.getCurrentUser）
+   * @deprecated 使用 authApi.getCurrentUser 代替
+   */
+  getCurrentUser: async (): Promise<User | null> => {
+    if (IS_MOCK_MODE) {
+      const user = await request<User>("/user/current")
+      return user
+    }
 
-  // 获取角色列表
-  getRoles: () => request<Role[]>("/roles"),
+    // 真实模式：使用适配器转换
+    // /auth/me 返回 BackendCurrentUserResponse（包含必需的 permissions 字段）
+    const backendUser = await request<BackendCurrentUserResponse>("/auth/me")
+    return adaptBackendCurrentUser(backendUser)
+  },
+
+  /**
+   * 获取角色列表
+   */
+  getRoles: async (): Promise<Role[]> => {
+    if (IS_MOCK_MODE) {
+      return request<Role[]>("/roles")
+    }
+
+    // 真实模式：使用适配器转换后端角色
+    const backendRoles = await request<BackendRole[]>("/roles")
+    return backendRoles.map(adaptBackendRole)
+  },
 }
 
 // 仪表盘相关 API
