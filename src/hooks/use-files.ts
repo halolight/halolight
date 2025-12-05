@@ -14,7 +14,7 @@ export const fileKeys = {
 export function useFiles(path?: string) {
   return useQuery({
     queryKey: fileKeys.list(path),
-    queryFn: () => fileService.getFiles(path),
+    queryFn: () => fileService.getFiles({ path }),
   })
 }
 

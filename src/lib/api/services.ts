@@ -19,6 +19,9 @@ import type {
   DashboardStats,
   Document,
   FileItem,
+  Folder,
+  FolderCreateRequest,
+  FolderUpdateRequest,
   ListData,
   LoginResponse,
   Message,
@@ -330,15 +333,25 @@ export const notificationService = {
 // 文档相关 API
 export const documentService = {
   // 获取文档列表
-  getDocuments: (params?: {
+  getDocuments: async (params?: {
     page?: number
     pageSize?: number
     type?: string
     folder?: string
     search?: string
-  }) => {
+  }): Promise<ListData<Document>> => {
     const query = mapQueryParams(params)
-    return request<Document[]>(`/documents${query ? `?${query}` : ""}`)
+    const endpoint = `/documents${query ? `?${query}` : ""}`
+
+    if (IS_MOCK_MODE) {
+      // Mock 模式返回数组
+      const docs = await request<Document[]>(endpoint)
+      return { list: docs, total: docs.length }
+    }
+
+    // 真实模式：后端返回 { data: [], meta: { total, page, limit } }
+    const response = await request<{ data: Document[]; meta: { total: number } }>(endpoint)
+    return { list: response.data, total: response.meta.total }
   },
 
   // 获取单个文档
@@ -492,24 +505,72 @@ export const calendarService = {
 // 文件相关 API
 export const fileService = {
   // 获取文件列表
-  getFiles: (path?: string) => {
-    const params = path ? `?path=${encodeURIComponent(path)}` : ""
-    return request<FileItem[]>(`/files${params}`)
+  getFiles: async (params?: {
+    path?: string
+    page?: number
+    pageSize?: number
+    type?: string
+    search?: string
+  }): Promise<ListData<FileItem>> => {
+    const query = mapQueryParams(params)
+    const endpoint = `/files${query ? `?${query}` : ""}`
+
+    if (IS_MOCK_MODE) {
+      const files = await request<FileItem[]>(endpoint)
+      return { list: files, total: files.length }
+    }
+
+    // 真实模式：后端返回 { data: [], meta: { total, page, limit } }
+    const response = await request<{ data: FileItem[]; meta: { total: number } }>(endpoint)
+    return { list: response.data, total: response.meta.total }
   },
 
   // 获取存储空间信息
   getStorage: () => request<StorageInfo>("/files/storage"),
 
+  // 获取存储空间信息（别名）
+  getStorageInfo: () => request<StorageInfo>("/files/storage-info"),
+
   // 上传文件
-  uploadFile: (file: File, path?: string) => {
+  uploadFile: async (file: File, path?: string): Promise<FileItem> => {
     const formData = new FormData()
     formData.append("file", file)
     if (path) formData.append("path", path)
-    return request<FileItem>("/files/upload", {
+
+    const url = `${API_BASE}/files/upload`
+
+    // 构建请求头（不设置 Content-Type，让浏览器自动设置 multipart/form-data）
+    const headers: Record<string, string> = {}
+    if (!IS_MOCK_MODE) {
+      const token = tokenStorage.getAccessToken()
+      if (token) {
+        headers.Authorization = `Bearer ${token}`
+      }
+    }
+
+    const response = await fetch(url, {
       method: "POST",
       body: formData,
-      headers: {}, // 让浏览器自动设置 Content-Type
+      headers,
     })
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+
+    const data = await response.json()
+
+    if (IS_MOCK_MODE) {
+      if (typeof data === "object" && data && "code" in data && "data" in data) {
+        if (data.code !== 200) {
+          throw new Error((data as { message?: string }).message || "上传失败")
+        }
+        return (data as { data: FileItem }).data
+      }
+      return data as FileItem
+    }
+
+    return data as FileItem
   },
 
   // 创建文件夹
@@ -573,7 +634,23 @@ export const fileService = {
 // 团队相关 API
 export const teamService = {
   // 获取团队列表
-  getTeams: () => request<Team[]>("/teams"),
+  getTeams: async (params?: {
+    page?: number
+    pageSize?: number
+    search?: string
+  }): Promise<ListData<Team>> => {
+    const query = mapQueryParams(params)
+    const endpoint = `/teams${query ? `?${query}` : ""}`
+
+    if (IS_MOCK_MODE) {
+      const teams = await request<Team[]>(endpoint)
+      return { list: teams, total: teams.length }
+    }
+
+    // 真实模式：后端返回 { data: [], meta: { total, page, limit } }
+    const response = await request<{ data: Team[]; meta: { total: number } }>(endpoint)
+    return { list: response.data, total: response.meta.total }
+  },
 
   // 获取单个团队
   getTeam: (id: string) => request<Team>(`/teams/${id}`),
@@ -610,8 +687,8 @@ export const teamService = {
 
 // 角色相关 API（扩展）
 export const roleService = {
-  // 获取角色列表（带详情）
-  getRoles: () => request<RoleDetail[]>("/roles/detail"),
+  // 获取角色列表
+  getRoles: () => request<RoleDetail[]>("/roles"),
 
   // 获取单个角色
   getRole: (id: string) => request<RoleDetail>(`/roles/${id}`),
@@ -667,6 +744,36 @@ export const permissionService = {
     request<void>(`/permissions/${id}`, { method: "DELETE" }),
 }
 
+// 文件夹相关 API
+export const folderService = {
+  // 获取文件夹列表
+  getFolders: (parentId?: string) => {
+    const query = parentId ? `?parentId=${parentId}` : ""
+    return request<Folder[]>(`/folders${query}`)
+  },
+
+  // 获取单个文件夹
+  getFolder: (id: string) => request<Folder>(`/folders/${id}`),
+
+  // 创建文件夹
+  createFolder: (data: FolderCreateRequest) =>
+    request<Folder>("/folders", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  // 更新文件夹
+  updateFolder: (id: string, data: FolderUpdateRequest) =>
+    request<Folder>(`/folders/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  // 删除文件夹
+  deleteFolder: (id: string) =>
+    request<void>(`/folders/${id}`, { method: "DELETE" }),
+}
+
 // 重新导出类型供外部使用
 export type {
   Activity,
@@ -675,6 +782,9 @@ export type {
   DashboardStats,
   Document,
   FileItem,
+  Folder,
+  FolderCreateRequest,
+  FolderUpdateRequest,
   ListData,
   LoginResponse,
   Message,

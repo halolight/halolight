@@ -102,7 +102,8 @@ function formatDateTime(dateStr: string): string {
 }
 
 export default function FilesPage() {
-  const { data: files = [], isLoading } = useFiles()
+  const { data: filesData, isLoading } = useFiles()
+  const files = React.useMemo(() => filesData?.list ?? [], [filesData?.list])
   const { data: storage } = useStorage()
   const createFolder = useCreateFolder()
   const deleteFile = useDeleteFile()

@@ -447,3 +447,28 @@ export interface RoleUpdateRequest {
   description?: string
   permissions?: Permission[]
 }
+
+// ============================================================================
+// 文件夹
+// ============================================================================
+
+/** 文件夹 */
+export interface Folder {
+  id: string
+  name: string
+  parentId: string | null
+  createdAt?: string
+  updatedAt?: string
+}
+
+/** 文件夹创建请求 */
+export interface FolderCreateRequest {
+  name: string
+  parentId?: string
+}
+
+/** 文件夹更新请求 */
+export interface FolderUpdateRequest {
+  name?: string
+  parentId?: string
+}

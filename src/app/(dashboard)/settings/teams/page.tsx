@@ -61,7 +61,8 @@ import type { Team } from "@/lib/api/types"
 export default function TeamsPage() {
   useTdk(getRouteTdk("/settings/teams"))
 
-  const { data: teams = [], isLoading, error } = useTeams()
+  const { data: teamsData, isLoading, error } = useTeams()
+  const teams = teamsData?.list ?? []
   const createMutation = useCreateTeam()
   const updateMutation = useUpdateTeam()
   const deleteMutation = useDeleteTeam()
