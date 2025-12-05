@@ -40,23 +40,35 @@ export function PermissionProvider({ children }: { children: React.ReactNode }) 
       : currentRole
   }, [activeAccount])
 
+  // 合并角色权限和用户直接权限
+  const allPermissions = React.useMemo(() => {
+    const rolePerms = role?.permissions ?? []
+    const userPerms = activeAccount?.permissions ?? []
+    // 去重合并
+    return Array.from(new Set([...rolePerms, ...userPerms])) as Permission[]
+  }, [role, activeAccount])
+
   const permissionSet = React.useMemo(
-    () => new Set<string>(role?.permissions ?? []),
-    [role]
+    () => new Set<string>(allPermissions),
+    [allPermissions]
   )
 
-  const permissions = React.useMemo(
-    () => (role?.permissions ?? []) as Permission[],
-    [role]
-  )
+  const permissions = allPermissions
 
   const hasPermission = React.useCallback(
     (permission: Permission) => {
-      if (permissionSet.has("*")) return true
+      // 超级管理员权限：支持 "*" 和 "*:*" 两种通配符格式
+      if (permissionSet.has("*") || permissionSet.has("*:*")) return true
+      // 完全匹配
       if (permissionSet.has(permission)) return true
 
-      const [resource] = permission.split(":")
-      return permissionSet.has(`${resource}:*`)
+      const [resource, action] = permission.split(":")
+      // 资源通配符：如 "users:*" 匹配 "users:view"
+      if (permissionSet.has(`${resource}:*`)) return true
+      // 操作通配符：如 "*:view" 匹配 "users:view"
+      if (permissionSet.has(`*:${action}`)) return true
+
+      return false
     },
     [permissionSet]
   )

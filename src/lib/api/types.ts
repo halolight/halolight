@@ -44,28 +44,55 @@ export interface ListData<T> {
 
 /** 权限类型 */
 export type Permission =
+  // 通配符权限
+  | "*"
+  | "*:*"
+  // 仪表盘
   | "dashboard:view"
+  | "dashboard:*"
+  // 用户管理
   | "users:view"
   | "users:create"
   | "users:edit"
   | "users:delete"
+  | "users:*"
+  // 数据分析
   | "analytics:view"
   | "analytics:export"
+  | "analytics:*"
+  // 系统设置
   | "settings:view"
   | "settings:edit"
+  | "settings:*"
+  // 文档管理
   | "documents:view"
   | "documents:create"
   | "documents:edit"
   | "documents:delete"
+  | "documents:*"
+  // 文件管理
   | "files:view"
   | "files:upload"
   | "files:delete"
+  | "files:*"
+  // 消息
   | "messages:view"
   | "messages:send"
+  | "messages:*"
+  // 日历
   | "calendar:view"
   | "calendar:edit"
+  | "calendar:*"
+  // 通知
   | "notifications:view"
   | "notifications:manage"
+  | "notifications:*"
+  // 通用操作通配符
+  | "*:view"
+  | "*:create"
+  | "*:edit"
+  | "*:delete"
+  | "*:manage"
 
 /** 角色 */
 export interface Role {

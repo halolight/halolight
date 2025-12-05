@@ -6,6 +6,7 @@
  * 确保 Mock 模式在服务端和客户端都能正常工作。
  */
 
+import { tokenStorage } from "./client"
 import {
   calendarApi,
   documentApi,
@@ -175,9 +176,21 @@ async function fetchApi<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  }
+
+  // 真实模式下添加 Authorization 头
+  if (!IS_MOCK_MODE) {
+    const token = tokenStorage.getAccessToken()
+    if (token) {
+      headers.Authorization = `Bearer ${token}`
+    }
+  }
+
   const response = await fetch(`${API_BASE}${endpoint}`, {
     headers: {
-      "Content-Type": "application/json",
+      ...headers,
       ...options.headers,
     },
     ...options,

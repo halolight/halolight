@@ -57,7 +57,10 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const token = request.cookies.get("token")?.value
+  // 兼容真实 API 模式 (accessToken) 和 Mock 模式 (token)
+  const token =
+    request.cookies.get("accessToken")?.value ||
+    request.cookies.get("token")?.value
 
   const isPublicRoute = checkPublicRoute(pathname)
   const isAuthRoute = checkAuthRoute(pathname)

@@ -43,8 +43,9 @@ export function Header({ onMenuClick, onSearchClick }: HeaderProps) {
   // 优化：使用 useCallback 缓存回调函数
   const handleLogout = React.useCallback(async () => {
     await logout()
-    router.push("/login")
-  }, [logout, router])
+    // 使用 window.location 强制刷新，避免路由缓存问题
+    window.location.href = "/login"
+  }, [logout])
 
   const handleNavigate = React.useCallback((href: string, label: string) => {
     startNavigation({ path: href, label, source: "header" })

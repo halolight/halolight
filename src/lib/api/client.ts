@@ -12,7 +12,7 @@ import type {
   BackendRefreshTokenResponse,
 } from "./backend-types"
 import { mockRoles } from "./mock-data"
-import type { Role } from "./types"
+import type { Permission, Role } from "./types"
 
 // ============================================================================
 // 环境配置
@@ -326,6 +326,10 @@ export interface User {
   avatar?: string
   role: Role
   status?: "active" | "inactive" | "suspended"
+  permissions?: Permission[]
+  department?: string
+  position?: string
+  bio?: string
   createdAt: string
   lastLoginAt?: string
 }

@@ -6,6 +6,7 @@ import { cookies } from "next/headers"
 import type { Document } from "@/lib/api/types"
 
 const API_BASE = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "/api"
+const IS_MOCK_MODE = process.env.NEXT_PUBLIC_MOCK === "true"
 
 // ============================================================================
 // 类型定义
@@ -42,7 +43,11 @@ async function serverFetch<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const cookieStore = await cookies()
-  const token = cookieStore.get("token")?.value
+
+  // Mock 模式使用 token，真实模式使用 accessToken
+  const token = IS_MOCK_MODE
+    ? cookieStore.get("token")?.value
+    : cookieStore.get("accessToken")?.value
 
   const response = await fetch(`${API_BASE}${endpoint}`, {
     headers: {

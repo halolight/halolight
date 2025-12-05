@@ -1,11 +1,37 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 
+import { tokenStorage } from "@/lib/api/client"
+
 type ApiResponse<T> = { code: number; message: string; data: T }
 
+const IS_MOCK_MODE = process.env.NEXT_PUBLIC_MOCK === "true"
+
 async function fetcher<T>(url: string): Promise<T> {
-  const res = await fetch(url)
-  const json = (await res.json()) as ApiResponse<T>
-  return json.data
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  }
+
+  // 真实模式下添加 Authorization 头
+  if (!IS_MOCK_MODE) {
+    const token = tokenStorage.getAccessToken()
+    if (token) {
+      headers.Authorization = `Bearer ${token}`
+    }
+  }
+
+  const res = await fetch(url, { headers })
+
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+  }
+
+  const json = (await res.json()) as ApiResponse<T> | T
+
+  // 支持包装和非包装两种格式
+  if (typeof json === "object" && json && "code" in json && "data" in json) {
+    return (json as ApiResponse<T>).data
+  }
+  return json as T
 }
 
 export interface DashboardStats {
@@ -69,9 +95,8 @@ export function useDashboardUsers() {
   return useQuery({
     queryKey: ["dashboard", "users"],
     queryFn: async () => {
-      const res = await fetch("/api/users")
-      const json = (await res.json()) as ApiResponse<{ list?: Array<{ name: string; email: string }> }>
-      return Array.isArray(json.data?.list) ? json.data.list : []
+      const data = await fetcher<{ list?: Array<{ name: string; email: string }> }>("/api/users")
+      return Array.isArray(data?.list) ? data.list : []
     },
   })
 }

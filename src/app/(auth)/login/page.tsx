@@ -62,7 +62,7 @@ export default function LoginPage() {
       await login(formData)
       // 登录成功后立即跳转
       const redirectUrl = searchParams.get("redirect") || "/"
-      router.push(redirectUrl)
+      await router.push(redirectUrl)
     } catch {
       // 错误已在 store 中处理
     }
