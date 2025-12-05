@@ -325,7 +325,7 @@ export interface User {
   name: string
   avatar?: string
   role: Role
-  status?: "ACTIVE" | "INACTIVE" | "SUSPENDED"
+  status?: "active" | "inactive" | "suspended"
   createdAt: string
   lastLoginAt?: string
 }
@@ -367,7 +367,7 @@ const mockAccounts: AccountWithToken[] = [
     name: "主账号（管理员）",
     avatar: "/avatars/1.png",
     role: mockRoles[0],
-    status: "ACTIVE",
+    status: "active",
     createdAt: new Date().toISOString(),
     lastLoginAt: new Date().toISOString(),
     token: "mock_token_acc-admin",
@@ -378,7 +378,7 @@ const mockAccounts: AccountWithToken[] = [
     name: "日常运营账号",
     avatar: "/avatars/2.png",
     role: mockRoles[1],
-    status: "ACTIVE",
+    status: "active",
     createdAt: new Date().toISOString(),
     lastLoginAt: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
     token: "mock_token_acc-ops",
@@ -389,7 +389,7 @@ const mockAccounts: AccountWithToken[] = [
     name: "内容编辑账号",
     avatar: "/avatars/3.png",
     role: mockRoles[2],
-    status: "ACTIVE",
+    status: "active",
     createdAt: new Date().toISOString(),
     lastLoginAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
     token: "mock_token_acc-editor",
@@ -443,7 +443,7 @@ const mockRegister = async (data: RegisterRequest): Promise<LoginResponse> => {
     name: data.name,
     avatar: "/avatars/4.png",
     role: mockRoles[3],
-    status: "ACTIVE",
+    status: "active",
     createdAt: new Date().toISOString(),
     lastLoginAt: new Date().toISOString(),
     token: buildToken(accountId),

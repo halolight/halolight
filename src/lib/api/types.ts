@@ -76,8 +76,8 @@ export interface Role {
   description?: string
 }
 
-/** 用户状态（大写枚举，与后端保持一致） */
-export type UserStatus = "ACTIVE" | "INACTIVE" | "SUSPENDED"
+/** 用户状态 */
+export type UserStatus = "active" | "inactive" | "suspended"
 
 /** 用户 */
 export interface User {

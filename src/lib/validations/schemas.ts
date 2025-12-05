@@ -96,7 +96,7 @@ export const userSchema = z.object({
       "请输入有效的手机号"
     ),
   role: z.string().min(1, "请选择角色"),
-  status: z.enum(["ACTIVE", "INACTIVE", "SUSPENDED"], {
+  status: z.enum(["active", "inactive", "suspended"], {
     message: "请选择状态",
   }),
 })

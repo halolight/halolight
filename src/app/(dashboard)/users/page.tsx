@@ -62,9 +62,9 @@ import { type UserFormData, userSchema } from "@/lib/validations/schemas"
 import { PermissionGuard, usePermission } from "@/providers/permission-provider"
 
 const statusMap = {
-  ACTIVE: { label: "活跃", variant: "default" as const },
-  INACTIVE: { label: "禁用", variant: "secondary" as const },
-  SUSPENDED: { label: "暂停", variant: "outline" as const },
+  active: { label: "活跃", variant: "default" as const },
+  inactive: { label: "禁用", variant: "secondary" as const },
+  suspended: { label: "暂停", variant: "outline" as const },
 }
 
 const roleColors: Record<string, string> = {
@@ -162,7 +162,7 @@ function FormDialogContent({
             <Label>状态</Label>
             <Select
               value={watchedStatus ?? ""}
-              onValueChange={(value: "ACTIVE" | "INACTIVE" | "SUSPENDED") =>
+              onValueChange={(value: "active" | "inactive" | "suspended") =>
                 form.setValue("status", value)
               }
             >
@@ -170,9 +170,9 @@ function FormDialogContent({
                 <SelectValue placeholder="选择状态" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ACTIVE">活跃</SelectItem>
-                <SelectItem value="INACTIVE">禁用</SelectItem>
-                <SelectItem value="SUSPENDED">暂停</SelectItem>
+                <SelectItem value="active">活跃</SelectItem>
+                <SelectItem value="inactive">禁用</SelectItem>
+                <SelectItem value="suspended">暂停</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -240,7 +240,7 @@ export default function UsersPage() {
       email: "",
       phone: "",
       role: "",
-      status: "ACTIVE",
+      status: "active",
     },
   })
 
@@ -250,9 +250,9 @@ export default function UsersPage() {
   // 统计数据
   const stats = React.useMemo(() => ({
     total,
-    active: users.filter((u) => u.status === "ACTIVE").length,
-    inactive: users.filter((u) => u.status === "INACTIVE").length,
-    suspended: users.filter((u) => u.status === "SUSPENDED").length,
+    active: users.filter((u) => u.status === "active").length,
+    inactive: users.filter((u) => u.status === "inactive").length,
+    suspended: users.filter((u) => u.status === "suspended").length,
   }), [users, total])
 
   // 打开编辑对话框
@@ -487,7 +487,7 @@ export default function UsersPage() {
                   <SelectItem value="all">全部状态</SelectItem>
                   <SelectItem value="active">活跃</SelectItem>
                   <SelectItem value="inactive">禁用</SelectItem>
-                  <SelectItem value="SUSPENDED">暂停</SelectItem>
+                  <SelectItem value="suspended">暂停</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={roleFilter} onValueChange={setRoleFilter}>

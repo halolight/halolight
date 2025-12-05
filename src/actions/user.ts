@@ -30,7 +30,7 @@ export interface UserFormData {
   name: string
   email: string
   roleId?: string
-  status?: "ACTIVE" | "INACTIVE" | "SUSPENDED"
+  status?: "active" | "inactive" | "suspended"
   avatar?: string
   phone?: string
   department?: string
@@ -426,7 +426,7 @@ export async function batchDeleteUsersAction(
  */
 export async function updateUserStatusAction(
   id: string,
-  status: "ACTIVE" | "INACTIVE" | "SUSPENDED"
+  status: "active" | "inactive" | "suspended"
 ): Promise<ActionResult<User>> {
   try {
     if (IS_MOCK_MODE) {

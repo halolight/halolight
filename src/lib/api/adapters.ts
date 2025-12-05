@@ -26,18 +26,20 @@ import type { ListData, Permission, Role, User, UserStatus } from "./types"
 
 /**
  * 将后端用户状态转换为前端用户状态
- * 由于前后端现在都使用大写枚举，直接返回即可
+ * 后端使用大写枚举 (ACTIVE/INACTIVE/SUSPENDED)
+ * 前端使用小写枚举 (active/inactive/suspended)
  */
 export function adaptUserStatus(status: BackendUserStatus): UserStatus {
-  return status as UserStatus
+  return status.toLowerCase() as UserStatus
 }
 
 /**
  * 将前端用户状态转换为后端用户状态
- * 由于前后端现在都使用大写枚举，直接返回即可
+ * 前端使用小写枚举 (active/inactive/suspended)
+ * 后端使用大写枚举 (ACTIVE/INACTIVE/SUSPENDED)
  */
 export function toBackendUserStatus(status: UserStatus): BackendUserStatus {
-  return status as BackendUserStatus
+  return status.toUpperCase() as BackendUserStatus
 }
 
 // ============================================================================
