@@ -135,8 +135,41 @@ const mockApiRouter: ApiRouter = {
 // Real API 实现（通过 fetch 调用后端）
 // ============================================================================
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api"
 const IS_MOCK_MODE = process.env.NEXT_PUBLIC_MOCK === "true"
+
+/**
+ * API 基础 URL 配置
+ * - Mock 模式: /api（使用 Next.js 路由代理）
+ * - 真实模式: 去除末尾的 /api 避免重复，然后拼接 /api
+ */
+const NORMALIZED_API_BASE = (
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+).replace(/\/api\/?$/, "")
+
+const API_BASE = IS_MOCK_MODE ? "/api" : `${NORMALIZED_API_BASE}/api`
+
+/**
+ * 将前端查询参数转换为后端命名
+ * pageSize -> limit, keyword -> search
+ */
+function mapQueryParams(params?: Record<string, string | number | boolean | undefined>): string {
+  if (!params) return ""
+
+  const query = new URLSearchParams()
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined) return
+
+    // 参数名称映射
+    let mappedKey = key
+    if (key === "pageSize") mappedKey = "limit"
+    if (key === "keyword") mappedKey = "search"
+
+    query.set(mappedKey, String(value))
+  })
+
+  return query.toString()
+}
 
 async function fetchApi<T>(
   endpoint: string,
@@ -177,15 +210,7 @@ async function fetchApi<T>(
 const realApiRouter: ApiRouter = {
   user: {
     getUsers: (params) => {
-      const query = new URLSearchParams(
-        Object.entries(params || {}).reduce(
-          (acc, [key, value]) => {
-            if (value !== undefined) acc[key] = String(value)
-            return acc
-          },
-          {} as Record<string, string>
-        )
-      ).toString()
+      const query = mapQueryParams(params)
       return fetchApi(`/users${query ? `?${query}` : ""}`)
     },
     getUser: (id) => fetchApi(`/users/${id}`),
@@ -196,7 +221,7 @@ const realApiRouter: ApiRouter = {
       }),
     updateUser: (id, data) =>
       fetchApi(`/users/${id}`, {
-        method: "PUT",
+        method: "PATCH",
         body: JSON.stringify(data),
       }),
     deleteUser: (id) =>
@@ -210,30 +235,14 @@ const realApiRouter: ApiRouter = {
   },
   document: {
     getDocuments: (params) => {
-      const query = new URLSearchParams(
-        Object.entries(params || {}).reduce(
-          (acc, [key, value]) => {
-            if (value !== undefined) acc[key] = String(value)
-            return acc
-          },
-          {} as Record<string, string>
-        )
-      ).toString()
+      const query = mapQueryParams(params)
       return fetchApi(`/documents${query ? `?${query}` : ""}`)
     },
     getDocument: (id) => fetchApi(`/documents/${id}`),
   },
   notification: {
     getNotifications: (params) => {
-      const query = new URLSearchParams(
-        Object.entries(params || {}).reduce(
-          (acc, [key, value]) => {
-            if (value !== undefined) acc[key] = String(value)
-            return acc
-          },
-          {} as Record<string, string>
-        )
-      ).toString()
+      const query = mapQueryParams(params)
       return fetchApi(`/notifications${query ? `?${query}` : ""}`)
     },
     getUnreadCount: () => fetchApi("/notifications/unread-count"),
@@ -261,15 +270,7 @@ const realApiRouter: ApiRouter = {
   },
   message: {
     getMessages: (params) => {
-      const query = new URLSearchParams(
-        Object.entries(params || {}).reduce(
-          (acc, [key, value]) => {
-            if (value !== undefined) acc[key] = String(value)
-            return acc
-          },
-          {} as Record<string, string>
-        )
-      ).toString()
+      const query = mapQueryParams(params)
       return fetchApi(`/messages${query ? `?${query}` : ""}`)
     },
     getUnreadCount: () => fetchApi("/messages/unread-count"),

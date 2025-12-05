@@ -121,6 +121,42 @@ async function request<T>(
 }
 
 // ============================================================================
+// 查询参数映射
+// ============================================================================
+
+/**
+ * 将前端查询参数转换为后端命名
+ * pageSize -> limit, keyword -> search
+ */
+function mapQueryParams(params?: {
+  page?: number
+  pageSize?: number
+  keyword?: string
+  status?: string
+  role?: string
+  type?: string
+  search?: string
+  [key: string]: string | number | boolean | undefined
+}): string {
+  if (!params) return ""
+
+  const query = new URLSearchParams()
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined) return
+
+    // 参数名称映射
+    let mappedKey = key
+    if (key === "pageSize") mappedKey = "limit"
+    if (key === "keyword") mappedKey = "search"
+
+    query.set(mappedKey, String(value))
+  })
+
+  return query.toString()
+}
+
+// ============================================================================
 // 用户相关 API
 // ============================================================================
 
@@ -132,10 +168,10 @@ export const userService = {
     page?: number
     pageSize?: number
     keyword?: string
+    status?: string
+    role?: string
   }): Promise<ListData<User>> => {
-    const query = new URLSearchParams(
-      params as Record<string, string>
-    ).toString()
+    const query = mapQueryParams(params)
     const endpoint = `/users${query ? `?${query}` : ""}`
 
     if (IS_MOCK_MODE) {
@@ -177,7 +213,7 @@ export const userService = {
    */
   updateUser: (id: string, data: Partial<User>) =>
     request<User>(`/users/${id}`, {
-      method: "PUT",
+      method: "PATCH",
       body: JSON.stringify(data),
     }),
 
@@ -186,6 +222,25 @@ export const userService = {
    */
   deleteUser: (id: string) =>
     request<void>(`/users/${id}`, { method: "DELETE" }),
+
+  /**
+   * 更新用户状态
+   * 后端期望大写状态值: ACTIVE, INACTIVE, SUSPENDED
+   */
+  updateUserStatus: (id: string, status: "active" | "inactive" | "suspended") =>
+    request<User>(`/users/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status: status.toUpperCase() }),
+    }),
+
+  /**
+   * 批量删除用户
+   */
+  batchDeleteUsers: (ids: string[]) =>
+    request<void>("/users/batch-delete", {
+      method: "POST",
+      body: JSON.stringify({ ids }),
+    }),
 
   /**
    * 登录（已废弃，请使用 authApi.login）
@@ -275,7 +330,16 @@ export const notificationService = {
 // 文档相关 API
 export const documentService = {
   // 获取文档列表
-  getDocuments: () => request<Document[]>("/documents"),
+  getDocuments: (params?: {
+    page?: number
+    pageSize?: number
+    type?: string
+    folder?: string
+    search?: string
+  }) => {
+    const query = mapQueryParams(params)
+    return request<Document[]>(`/documents${query ? `?${query}` : ""}`)
+  },
 
   // 获取单个文档
   getDocument: (id: string) => request<Document>(`/documents/${id}`),
@@ -297,6 +361,47 @@ export const documentService = {
   // 删除文档
   deleteDocument: (id: string) =>
     request<void>(`/documents/${id}`, { method: "DELETE" }),
+
+  // 分享文档
+  shareDocument: (id: string, payload?: { userIds?: string[]; public?: boolean }) =>
+    request<void>(`/documents/${id}/share`, {
+      method: "POST",
+      body: JSON.stringify(payload || {}),
+    }),
+
+  // 取消分享
+  unshareDocument: (id: string) =>
+    request<void>(`/documents/${id}/unshare`, {
+      method: "POST",
+    }),
+
+  // 移动文档到文件夹
+  moveDocument: (id: string, folder: string) =>
+    request<void>(`/documents/${id}/move`, {
+      method: "POST",
+      body: JSON.stringify({ folder }),
+    }),
+
+  // 更新文档标签
+  updateDocumentTags: (id: string, tags: string[]) =>
+    request<void>(`/documents/${id}/tags`, {
+      method: "POST",
+      body: JSON.stringify({ tags }),
+    }),
+
+  // 重命名文档
+  renameDocument: (id: string, title: string) =>
+    request<Document>(`/documents/${id}/rename`, {
+      method: "PATCH",
+      body: JSON.stringify({ title }),
+    }),
+
+  // 批量删除文档
+  batchDeleteDocuments: (ids: string[]) =>
+    request<void>("/documents/batch-delete", {
+      method: "POST",
+      body: JSON.stringify({ ids }),
+    }),
 }
 
 // 消息相关 API
@@ -355,6 +460,33 @@ export const calendarService = {
   // 删除事件
   deleteEvent: (id: string) =>
     request<void>(`/calendar/events/${id}`, { method: "DELETE" }),
+
+  // 添加参与者
+  addAttendees: (id: string, attendeeIds: string[]) =>
+    request<void>(`/calendar/events/${id}/attendees`, {
+      method: "POST",
+      body: JSON.stringify({ attendeeIds }),
+    }),
+
+  // 移除参与者
+  removeAttendee: (eventId: string, attendeeId: string) =>
+    request<void>(`/calendar/events/${eventId}/attendees/${attendeeId}`, {
+      method: "DELETE",
+    }),
+
+  // 重新安排事件时间
+  rescheduleEvent: (id: string, data: { start: string; end: string }) =>
+    request<CalendarEvent>(`/calendar/events/${id}/reschedule`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  // 批量删除事件
+  batchDeleteEvents: (ids: string[]) =>
+    request<void>("/calendar/events/batch-delete", {
+      method: "POST",
+      body: JSON.stringify({ ids }),
+    }),
 }
 
 // 文件相关 API
@@ -393,16 +525,48 @@ export const fileService = {
 
   // 移动文件
   moveFile: (id: string, targetPath: string) =>
-    request<void>(`/files/${id}/move`, {
-      method: "PUT",
+    request<FileItem>(`/files/${id}/move`, {
+      method: "POST",
       body: JSON.stringify({ targetPath }),
     }),
 
   // 重命名文件
   renameFile: (id: string, name: string) =>
-    request<void>(`/files/${id}/rename`, {
-      method: "PUT",
+    request<FileItem>(`/files/${id}/rename`, {
+      method: "PATCH",
       body: JSON.stringify({ name }),
+    }),
+
+  // 复制文件
+  copyFile: (id: string, targetPath: string) =>
+    request<FileItem>(`/files/${id}/copy`, {
+      method: "POST",
+      body: JSON.stringify({ targetPath }),
+    }),
+
+  // 切换收藏状态
+  toggleFavorite: (id: string, favorite?: boolean) =>
+    request<FileItem>(`/files/${id}/favorite`, {
+      method: "PATCH",
+      body: favorite !== undefined ? JSON.stringify({ favorite }) : undefined,
+    }),
+
+  // 分享文件
+  shareFile: (id: string, payload?: { userIds?: string[]; public?: boolean }) =>
+    request<void>(`/files/${id}/share`, {
+      method: "POST",
+      body: JSON.stringify(payload || {}),
+    }),
+
+  // 获取文件下载链接
+  getDownloadUrl: (id: string) =>
+    request<{ url: string }>(`/files/${id}/download-url`),
+
+  // 批量删除文件
+  batchDeleteFiles: (ids: string[]) =>
+    request<void>("/files/batch-delete", {
+      method: "POST",
+      body: JSON.stringify({ ids }),
     }),
 }
 
@@ -424,7 +588,7 @@ export const teamService = {
   // 更新团队
   updateTeam: (id: string, data: TeamUpdateRequest) =>
     request<Team>(`/teams/${id}`, {
-      method: "PUT",
+      method: "PATCH",
       body: JSON.stringify(data),
     }),
 
@@ -462,7 +626,7 @@ export const roleService = {
   // 更新角色
   updateRole: (id: string, data: RoleUpdateRequest) =>
     request<RoleDetail>(`/roles/${id}`, {
-      method: "PUT",
+      method: "PATCH",
       body: JSON.stringify(data),
     }),
 
@@ -472,6 +636,35 @@ export const roleService = {
 
   // 获取所有权限列表
   getPermissions: () => request<Array<{ key: string; label: string; group: string }>>("/permissions"),
+
+  // 为角色分配权限
+  assignPermissions: (roleId: string, permissionIds: string[]) =>
+    request<void>(`/roles/${roleId}/permissions`, {
+      method: "POST",
+      body: JSON.stringify({ permissionIds }),
+    }),
+}
+
+// 权限相关 API
+export const permissionService = {
+  // 获取所有权限
+  getPermissions: () =>
+    request<Array<{ id: string; action: string; resource: string; description?: string }>>("/permissions"),
+
+  // 获取单个权限
+  getPermission: (id: string) =>
+    request<{ id: string; action: string; resource: string; description?: string }>(`/permissions/${id}`),
+
+  // 创建权限
+  createPermission: (data: { action: string; resource: string; description?: string }) =>
+    request<{ id: string; action: string; resource: string; description?: string }>("/permissions", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  // 删除权限
+  deletePermission: (id: string) =>
+    request<void>(`/permissions/${id}`, { method: "DELETE" }),
 }
 
 // 重新导出类型供外部使用

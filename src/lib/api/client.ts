@@ -343,8 +343,10 @@ export interface LoginRequest {
 export interface RegisterRequest {
   name: string
   email: string
+  username?: string
   password: string
   confirmPassword: string
+  phone?: string
 }
 
 export interface LoginResponse {
@@ -515,12 +517,15 @@ export const authApi = {
     }
 
     // 真实 API 调用
+    // 后端期望: email, username, password, name, phone?
     const response = await apiClient.post<BackendLoginResponse>(
       `${API_PREFIX}/auth/register`,
       {
         email: data.email,
+        username: data.username || data.email.split("@")[0], // 默认使用邮箱前缀作为用户名
         name: data.name,
         password: data.password,
+        ...(data.phone && { phone: data.phone }),
       }
     )
 
