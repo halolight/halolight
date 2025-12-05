@@ -14,6 +14,7 @@ import {
   User,
 } from "lucide-react"
 import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
 import * as React from "react"
 
 import { AuthShell } from "@/components/auth/auth-shell"
@@ -26,6 +27,8 @@ import { useTitle } from "@/hooks"
 import { useAuthStore } from "@/stores/auth-store"
 
 export default function LoginPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const { login, isLoading, error, clearError } = useAuthStore()
   useTitle("登录")
 
@@ -57,7 +60,9 @@ export default function LoginPage() {
 
     try {
       await login(formData)
-      // 登录成功后由 AuthProvider 统一处理跳转
+      // 登录成功后立即跳转
+      const redirectUrl = searchParams.get("redirect") || "/"
+      router.push(redirectUrl)
     } catch {
       // 错误已在 store 中处理
     }
