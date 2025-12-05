@@ -136,6 +136,7 @@ const mockApiRouter: ApiRouter = {
 // ============================================================================
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api"
+const IS_MOCK_MODE = process.env.NEXT_PUBLIC_MOCK === "true"
 
 async function fetchApi<T>(
   endpoint: string,
@@ -149,14 +150,28 @@ async function fetchApi<T>(
     ...options,
   })
 
-  const data = await response.json()
-
-  // 兼容不同的响应格式
-  if (data.code !== 0 && data.code !== 200) {
-    throw new Error(data.message || "请求失败")
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`)
   }
 
-  return data
+  const data = await response.json()
+
+  // Mock 模式：期望返回 { code: 200, data: T, message: string }
+  if (IS_MOCK_MODE) {
+    if (data.code !== 200 && data.code !== 0) {
+      throw new Error(data.message || "请求失败")
+    }
+    return data
+  }
+
+  // 真实 API 模式：需要包装成统一格式
+  // 后端直接返回数据或分页格式 {data: [], meta: {}}
+  // 但为了兼容现有代码，需要包装成 {code: 200, data: T}
+  return {
+    code: 200,
+    data,
+    message: "success",
+  } as T
 }
 
 const realApiRouter: ApiRouter = {

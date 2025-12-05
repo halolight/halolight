@@ -53,7 +53,7 @@ interface ActionMutationContext {
  * })
  *
  * // 调用
- * mutate({ name: "张三", email: "zhangsan@example.com" })
+ * mutate({ name: "张三", email: "zhangsan@halolight.h7ml.cn" })
  * ```
  */
 export function useActionMutation<TData, TVars>(

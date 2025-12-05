@@ -84,7 +84,7 @@ export function useRoles() {
  *
  * mutate({
  *   name: "张三",
- *   email: "zhangsan@example.com",
+ *   email: "zhangsan@halolight.h7ml.cn",
  *   role: "user",
  * })
  * ```
@@ -198,7 +198,7 @@ export function useBatchDeleteUsers(options?: {
  * ```tsx
  * const { mutate } = useUpdateUserStatus()
  *
- * mutate({ id: "user-id", status: "active" })
+ * mutate({ id: "user-id", status: "ACTIVE" })
  * ```
  */
 export function useUpdateUserStatus(options?: {

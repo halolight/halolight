@@ -11,6 +11,13 @@ const isCloudflare = process.env.CF_PAGES === "1";
 const isVercel = process.env.VERCEL === "1";
 const isProduction = process.env.NODE_ENV === "production";
 
+// 后端 API 地址
+const API_BACKEND_URL =
+  process.env.API_BACKEND_URL ||
+  (isProduction
+    ? "https://halolight-api-nestjs.h7ml.cn"
+    : "http://localhost:3000");
+
 // 是否使用 standalone 输出模式（用于 Docker/Node.js 部署）
 // 可通过 STANDALONE=true 环境变量显式启用
 const useStandalone =
@@ -296,6 +303,20 @@ const nextConfig = {
       //   destination: '/new-path',
       //   permanent: true,
       // },
+    ];
+  },
+
+  // API 代理 - 将 /api/* 请求转发到后端（Mock 模式下不启用）
+  async rewrites() {
+    // Mock 模式使用本地 API 路由
+    if (process.env.NEXT_PUBLIC_MOCK === "true") {
+      return [];
+    }
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${API_BACKEND_URL}/api/:path*`,
+      },
     ];
   },
 
