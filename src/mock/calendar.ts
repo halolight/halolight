@@ -37,12 +37,13 @@ Mock.mock("/api/calendar/events", "get", () => {
     }))
   }
 
-  // 生成今天的事件（2-4个）
-  for (let i = 0; i < Mock.Random.integer(2, 4); i++) {
-    const hour = Mock.Random.integer(9, 20)
-    const startDate = new Date(currentYear, currentMonth, currentDay, hour)
+  // 生成今天的事件（6-10个）
+  for (let i = 0; i < Mock.Random.integer(6, 10); i++) {
+    const hour = Mock.Random.integer(8, 21)
+    const minute = Mock.Random.integer(0, 5) * 10 // 每10分钟一个档
+    const startDate = new Date(currentYear, currentMonth, currentDay, hour, minute)
     const endDate = new Date(startDate)
-    endDate.setHours(startDate.getHours() + Mock.Random.integer(1, 2))
+    endDate.setHours(startDate.getHours() + Mock.Random.integer(1, 3))
 
     events.push(Mock.mock({
       id: "@guid",
@@ -50,11 +51,11 @@ Mock.mock("/api/calendar/events", "get", () => {
       description: "@cparagraph(1,2)",
       start: startDate.toISOString(),
       end: endDate.toISOString(),
-      "type|1": ["meeting", "task", "reminder"],
-      "color|1": ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"],
+      "type|1": ["meeting", "task", "reminder", "call"],
+      "color|1": ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#6366f1"],
       allDay: false,
       location: "@city(true)",
-      "attendees|1-3": [
+      "attendees|1-5": [
         {
           id: "@guid",
           name: "@cname",

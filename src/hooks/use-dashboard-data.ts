@@ -95,8 +95,10 @@ export function useDashboardUsers() {
   return useQuery({
     queryKey: ["dashboard", "users"],
     queryFn: async () => {
-      const data = await fetcher<{ list?: Array<{ name: string; email: string }> }>("/api/users")
-      return Array.isArray(data?.list) ? data.list : []
+      const data = await fetcher<{ data?: Array<{ name: string; email: string }> }>("/api/users")
+      // 支持两种格式：{ data: [...] } 或 { list: [...] } 或直接数组
+      if (Array.isArray(data)) return data
+      return Array.isArray(data?.data) ? data.data : []
     },
   })
 }

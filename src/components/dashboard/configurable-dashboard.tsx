@@ -341,16 +341,26 @@ function TasksWidget({ isMobile }: { isMobile?: boolean }) {
 function CalendarWidget({ isMobile }: { isMobile?: boolean }) {
   const { data, isLoading } = useDashboardCalendar()
 
+  // Use local date format (YYYY-MM-DD) instead of UTC
   const today = React.useMemo(() => {
     const d = new Date()
-    return d.toISOString().slice(0, 10)
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, "0")
+    const day = String(d.getDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
   }, [])
 
   const todayEvents = React.useMemo(() => {
     const events = Array.isArray(data) ? data : []
     return events.filter((event) => {
-      const start = event.start?.slice(0, 10)
-      return start === today
+      if (!event.start) return false
+      // Parse the event start time and compare with local date
+      const eventDate = new Date(event.start)
+      const eventYear = eventDate.getFullYear()
+      const eventMonth = String(eventDate.getMonth() + 1).padStart(2, "0")
+      const eventDay = String(eventDate.getDate()).padStart(2, "0")
+      const eventLocalDate = `${eventYear}-${eventMonth}-${eventDay}`
+      return eventLocalDate === today
     })
   }, [data, today])
 

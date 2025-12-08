@@ -172,6 +172,35 @@ function mapQueryParams(params?: Record<string, string | number | boolean | unde
   return query.toString()
 }
 
+/**
+ * 转换用户状态从后端格式到前端格式
+ */
+function transformUserStatus(status: string): string {
+  const statusMap: Record<string, string> = {
+    ACTIVE: "active",
+    INACTIVE: "inactive",
+    SUSPENDED: "suspended",
+  }
+  return statusMap[status] || status.toLowerCase()
+}
+
+/**
+ * 转换用户数据从后端格式到前端格式
+ */
+function transformUser(user: Record<string, unknown>): Record<string, unknown> {
+  return {
+    ...user,
+    status: transformUserStatus(user.status as string),
+    // 如果后端没有返回 role 对象，创建一个默认的
+    role: user.role || {
+      id: "user",
+      name: "user",
+      label: "普通用户",
+      permissions: [],
+    },
+  }
+}
+
 async function fetchApi<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -212,7 +241,29 @@ async function fetchApi<T>(
 
   // 真实 API 模式：需要包装成统一格式
   // 后端直接返回数据或分页格式 {data: [], meta: {}}
-  // 但为了兼容现有代码，需要包装成 {code: 200, data: T}
+  // 转换为前端期望的格式 {code: 200, data: {list: [], total, page, pageSize}}
+  if (data && typeof data === "object" && "data" in data && "meta" in data) {
+    // 分页响应格式转换
+    const { data: list, meta } = data as { data: unknown[]; meta: { total: number; page: number; limit: number; totalPages: number } }
+
+    // 检查是否是用户列表（通过 endpoint 判断）
+    const isUserList = endpoint.startsWith("/users")
+    const transformedList = isUserList
+      ? (list as Record<string, unknown>[]).map(transformUser)
+      : list
+
+    return {
+      code: 200,
+      data: {
+        list: transformedList,
+        total: meta.total,
+        page: meta.page,
+        pageSize: meta.limit,
+      },
+      message: "success",
+    } as T
+  }
+
   return {
     code: 200,
     data,

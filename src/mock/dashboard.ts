@@ -161,11 +161,19 @@ Mock.mock("/api/dashboard/tasks", "get", () => {
     code: 200,
     message: "success",
     data: Mock.mock({
-      "list|5-8": [
+      "list|15-25": [
         {
           id: "@guid",
           title: "@ctitle(4, 10)",
+          description: "@ctitle(8, 20)",
           "status|1": ["pending", "in_progress", "done"],
+          "priority|1": ["low", "medium", "high", "urgent"],
+          dueDate: "@datetime('yyyy-MM-dd HH:mm:ss')",
+          assignee: {
+            id: "@guid",
+            name: "@cname",
+            avatar: "@image('40x40', '@color', '#fff', '@first')",
+          },
         },
       ],
     }).list,
