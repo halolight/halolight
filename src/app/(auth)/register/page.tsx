@@ -11,6 +11,7 @@ import {
   Lock,
   Mail,
   MessageCircle,
+  Phone,
   Sparkles,
   User,
   X,
@@ -62,6 +63,9 @@ export default function RegisterPage() {
   const { register, isLoading, error, clearError } = useAuthStore()
   useTitle("注册")
 
+  // 读取注册开关环境变量，默认关闭
+  const registrationEnabled = process.env.NEXT_PUBLIC_ENABLE_REGISTRATION === "true"
+
   const [formData, setFormData] = React.useState({
     name: "",
     email: "",
@@ -110,8 +114,10 @@ export default function RegisterPage() {
     }
   }
 
-  const handleSocialLogin = (provider: string) => {
-    console.log(`使用 ${provider} 注册`)
+  const SOCIAL_LINKS = {
+    github: "https://github.com/halolight/halolight",
+    google: "https://halolight-docs.h7ml.cn",
+    wechat: "https://github.com/halolight",
   }
 
   React.useEffect(() => {
@@ -220,6 +226,92 @@ export default function RegisterPage() {
               </motion.div>
             </CardHeader>
             <CardContent className="space-y-2 sm:space-y-4 px-4 sm:px-6">
+              {!registrationEnabled ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="space-y-6 py-6"
+                >
+                  {/* 主要图标和标题 */}
+                  <div className="flex flex-col items-center justify-center space-y-4">
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                      className="relative"
+                    >
+                      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30">
+                        <Lock className="h-10 w-10 text-amber-600 dark:text-amber-500" />
+                      </div>
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                        className="absolute -inset-2 rounded-full border-2 border-dashed border-amber-300/50 dark:border-amber-700/50"
+                      />
+                    </motion.div>
+
+                    <div className="space-y-2 text-center">
+                      <h3 className="text-xl font-semibold text-foreground sm:text-2xl">
+                        注册已关闭
+                      </h3>
+                      <p className="max-w-sm text-sm text-muted-foreground">
+                        系统管理员已暂时关闭新用户注册功能
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* 信息卡片 */}
+                  <div className="space-y-3">
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="flex items-start gap-3 rounded-lg border border-border/50 bg-muted/50 p-4 backdrop-blur-sm transition-colors hover:border-primary/20 hover:bg-muted/80"
+                    >
+                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                        <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <p className="text-sm font-medium text-foreground">联系管理员</p>
+                        <p className="text-xs text-muted-foreground">
+                          如需创建账号，请通过邮件联系系统管理员
+                        </p>
+                      </div>
+                    </motion.div>
+
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className="flex items-start gap-3 rounded-lg border border-border/50 bg-muted/50 p-4 backdrop-blur-sm transition-colors hover:border-primary/20 hover:bg-muted/80"
+                    >
+                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                        <Phone className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <p className="text-sm font-medium text-foreground">已有账号？</p>
+                        <p className="text-xs text-muted-foreground">
+                          如果您已有账号，请直接登录使用系统功能
+                        </p>
+                      </div>
+                    </motion.div>
+                  </div>
+
+                  {/* 装饰性分隔线 */}
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-border/50" />
+                    </div>
+                    <div className="relative flex justify-center">
+                      <span className="bg-card px-4 text-xs text-muted-foreground">
+                        感谢您的理解
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+              ) : (
+                <>
               <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 {[
                   { icon: Github, name: "github", label: "GitHub" },
@@ -233,11 +325,18 @@ export default function RegisterPage() {
                     transition={{ delay: 0.5 + index * 0.1 }}
                   >
                     <Button
+                      asChild
                       variant="outline"
                       className="w-full h-11 sm:h-12 border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300 group"
-                      onClick={() => handleSocialLogin(provider.name)}
                     >
-                      <provider.icon className="h-5 w-5 group-hover:scale-110 transition-transform" />
+                      <a
+                        href={SOCIAL_LINKS[provider.name as keyof typeof SOCIAL_LINKS]}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`使用 ${provider.label} 注册`}
+                      >
+                        <provider.icon className="h-5 w-5 group-hover:scale-110 transition-transform" />
+                      </a>
                     </Button>
                   </motion.div>
                 ))}
@@ -470,8 +569,12 @@ export default function RegisterPage() {
                   </Button>
                 </motion.div>
               </form>
+                </>
+              )}
             </CardContent>
           <CardFooter className="flex flex-col space-y-3 sm:space-y-4 px-4 sm:px-6 pb-4 sm:pb-7 pt-2">
+              {registrationEnabled ? (
+                <>
               <div className="relative w-full">
                 <div className="absolute inset-0 flex items-center">
                   <Separator className="w-full" />
@@ -483,6 +586,31 @@ export default function RegisterPage() {
                   立即登录
                 </Link>
               </p>
+                </>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="w-full space-y-3"
+                >
+                  <Link href="/login" className="block w-full">
+                    <Button
+                      variant="default"
+                      className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 font-medium shadow-lg shadow-blue-500/30 transition-all hover:shadow-xl hover:shadow-blue-500/40"
+                    >
+                      <motion.span
+                        initial={{ x: 0 }}
+                        whileHover={{ x: -5 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        ← 返回登录
+                      </motion.span>
+                    </Button>
+                  </Link>
+                  <p className="text-center text-xs text-muted-foreground">使用现有账号登录系统</p>
+                </motion.div>
+              )}
             </CardFooter>
           </Card>
         </motion.div>

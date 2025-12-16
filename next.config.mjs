@@ -183,6 +183,12 @@ const nextConfig = {
   // 安全：移除 X-Powered-By 响应头
   poweredByHeader: false,
 
+  // 允许在导出过程中出现特定错误
+  onDemandEntries: {
+    maxInactiveAge: 60 * 1000,
+    pagesBufferLength: 5,
+  },
+
   // 打包优化
   compiler: {
     // 移除 console.log（生产环境）

@@ -68,8 +68,10 @@ export default function LoginPage() {
     }
   }
 
-  const handleSocialLogin = (provider: string) => {
-    console.log(`使用 ${provider} 登录`)
+  const SOCIAL_LINKS = {
+    github: "https://github.com/halolight/halolight",
+    google: "https://halolight-docs.h7ml.cn",
+    wechat: "https://github.com/halolight",
   }
 
   React.useEffect(() => {
@@ -188,11 +190,18 @@ export default function LoginPage() {
                     transition={{ delay: 0.5 + index * 0.1 }}
                   >
                     <Button
+                      asChild
                       variant="outline"
                       className="w-full h-11 sm:h-12 border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300 group"
-                      onClick={() => handleSocialLogin(provider.name)}
                     >
-                      <provider.icon className="h-5 w-5 group-hover:scale-110 transition-transform" />
+                      <a
+                        href={SOCIAL_LINKS[provider.name as keyof typeof SOCIAL_LINKS]}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`使用 ${provider.label} 登录`}
+                      >
+                        <provider.icon className="h-5 w-5 group-hover:scale-110 transition-transform" />
+                      </a>
                     </Button>
                   </motion.div>
                 ))}

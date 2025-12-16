@@ -2,7 +2,7 @@
 import * as React from "react"
 
 // Cloudflare Pages 需要 Edge Runtime
-export const runtime = "edge"
+// export const runtime = "edge"
 
 // import { Footer } from "@/components/layout/footer"
 

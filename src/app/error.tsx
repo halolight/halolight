@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { AlertTriangle, Home,RefreshCw } from "lucide-react"
+import { AlertTriangle, Home, RefreshCw } from "lucide-react"
 import { useEffect } from "react"
 
 import { Button } from "@/components/ui/button"

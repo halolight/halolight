@@ -93,12 +93,12 @@ export const metadata: Metadata = {
   },
 };
 
-// 全局关闭静态预渲染，避免客户端上下文依赖在构建时执行
-export const dynamic = "force-dynamic";
+// 允许静态生成以解决错误页面预渲染问题
+// Next.js 会自动为需要的页面进行动态渲染
 export const revalidate = 0;
 
-// Cloudflare Pages 需要 Edge Runtime
-export const runtime = "edge";
+// 禁用 Edge Runtime 以避免与错误页面的冲突
+// export const runtime = "edge";
 
 export default function RootLayout({
   children,
